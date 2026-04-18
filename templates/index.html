@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>Mausritter</title>
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0ebe0;--card:#c9b898;--brd:#2e2218;--lbl:#d6cfc4;
+  --gothic:"UnifrakturMaguntia",cursive;--body:"IM Fell English",serif;
+  --muted:#6b5c4c;--dsh:#b0a090;--accent:#8a6020
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--body);background:var(--bg);padding:14px;min-height:100vh}
+.header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:10px}
+.title{font-family:var(--gothic);font-size:1.9rem;line-height:1.15;flex:1}
+.btn-row{display:flex;gap:7px;flex-shrink:0;position:relative}
+.menu-toggle{padding:8px 14px;border:1.5px solid var(--brd);background:#e0d9cf;
+  cursor:pointer;font-family:var(--body);font-size:1.2rem;line-height:1;color:var(--brd)}
+.menu-toggle:hover{background:#cfc8be}
+.menu-panel{position:fixed;top:0;right:0;background:var(--bg);border:1.5px solid var(--brd);
+  padding:10px;z-index:101;box-shadow:-2px 2px 8px rgba(0,0,0,.2);
+  display:flex;flex-direction:column;gap:8px;transform:translateX(400px);transition:transform .3s ease;
+  border-top:none;border-right:none}
+.menu-panel.open{transform:translateX(0)}
+.menu-overlay{position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:100;display:none}
+.menu-overlay.open{display:block}
+.menu-btn{padding:10px 16px;border:1.5px solid var(--brd);background:#e0d9cf;
+  cursor:pointer;font-family:var(--body);font-size:.95rem;white-space:nowrap;width:100%;
+  text-align:center}
+.menu-btn:hover{background:#cfc8be}
+.menu-btn.edit-btn.active{background:var(--accent);color:#f5ead0;border-color:var(--accent)}
+.menu-btn.edit-btn.active:hover{background:#7a5518}
+.menu-btn.roll-btn:disabled{opacity:.5;cursor:default}
+.roll-btn,.edit-btn{padding:8px 14px;border:1.5px solid var(--brd);background:#e0d9cf;
+  cursor:pointer;font-family:var(--body);font-size:.95rem;white-space:nowrap}
+.roll-btn:hover,.edit-btn:hover{background:#cfc8be}
+.roll-btn:disabled{opacity:.5;cursor:default}
+.edit-btn.active{background:var(--accent);color:#f5ead0;border-color:var(--accent)}
+.edit-btn.active:hover{background:#7a5518}
+@keyframes shake{0%,100%{transform:translateX(0)}.25%{transform:translateX(-3px)}.75%{transform:translateX(3px)}}
+.roll-btn.unlock-shake{animation:shake .2s}
+.roll-btn.unlock-3{filter:grayscale(1) opacity(0.4);cursor:not-allowed}
+.roll-btn.unlock-2{filter:grayscale(0.85) opacity(0.6);cursor:not-allowed}
+.roll-btn.unlock-1{filter:grayscale(0.5) opacity(0.8);cursor:not-allowed}
+.roll-btn.unlock-0{filter:grayscale(1) opacity(0.5);cursor:not-allowed}
+.top-row{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.identity-wrap{flex:1;min-width:200px}
+.identity-table{width:100%;border-collapse:collapse;margin-bottom:14px}
+.identity-table td{border:1.5px solid var(--brd);padding:8px 12px}
+.id-label{font-family:var(--gothic);font-size:1.05rem;background:var(--lbl);width:110px}
+.details-panel{min-width:160px;padding-top:2px}
+.detail-row{margin-bottom:5px;font-size:.9rem}
+.detail-label{color:var(--muted)}.detail-val{font-weight:bold}
+.stats-section{margin-bottom:22px}
+.stat-headers{display:grid;grid-template-columns:80px 1fr 1fr;text-align:center;
+  font-size:.78rem;color:var(--muted);margin-bottom:4px;max-width:340px}
+.stat-row{display:grid;grid-template-columns:80px 1fr 1fr;border:1.5px solid var(--brd);
+  margin-bottom:7px;max-width:340px;border-radius:4px;overflow:hidden}
+.stat-label{font-family:var(--gothic);font-size:1.35rem;background:var(--lbl);
+  display:flex;align-items:center;justify-content:center;padding:4px 8px;border-right:1px solid var(--brd)}
+.stat-val{font-size:1.5rem;font-weight:bold;display:flex;align-items:center;
+  justify-content:center;padding:8px 4px}
+.stat-val+.stat-val{border-left:1px solid #c0b0a0}
+.stat-input{font-family:var(--body);font-size:1.3rem;font-weight:bold;text-align:center;
+  width:100%;border:none;background:rgba(255,255,255,.35);outline:none;color:var(--brd);padding:2px}
+.stat-input:focus{background:rgba(255,255,255,.65);outline:1px solid var(--accent)}
+.pips-input{font-family:var(--body);font-size:.9rem;font-weight:bold;text-align:center;
+  border:1px solid var(--accent);background:rgba(255,255,255,.45);outline:none;color:var(--brd);padding:2px 4px}
+.pips-input:focus{background:rgba(255,255,255,.72)}
+.sec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.sec-title{font-family:var(--gothic);font-size:1.55rem}
+.pips-badge{border:1.5px solid var(--brd);padding:5px 13px;font-size:.9rem;background:#e5ddd0}
+.equip-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:24px}
+.equip-slot{display:flex;flex-direction:column}
+.slot-lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;
+  letter-spacing:.06em;margin-bottom:4px;text-align:center}
+.bag-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:18px}
+.card{background:var(--card);border:1.5px solid #7a6050;padding:8px;
+  display:flex;flex-direction:column;justify-content:space-between;
+  min-height:108px;position:relative;cursor:pointer;
+  user-select:none;-webkit-user-select:none;transition:filter .12s}
+.card:active{filter:brightness(.9)}
+.card.empty{background:rgba(201,184,152,.18);border:1.5px dashed var(--dsh);
+  align-items:center;justify-content:center;color:var(--dsh);font-size:1.4rem;cursor:default}
+.card.empty:active{filter:none}
+.card.spell{border-style:dashed;background:#bfaf9c}
+.card.hireling{background:#c0c8b0}
+.card.armour{background:#c8c0b0}
+.card.weapon{background:#b8c0aa}
+.card.status{background:#d8a5a5;border-color:#8b4545;color:#4a2222;font-weight:bold}
+.bag-slot .card{min-height:82px;padding:6px}
+.bag-slot .card.empty{min-height:82px}
+body.edit-mode .card:not(.empty){border-color:var(--accent);cursor:default}
+body.edit-mode .card:not(.empty):active{filter:none}
+.nrow{display:flex;justify-content:space-between;align-items:flex-start;gap:3px}
+.iname{font-weight:bold;font-size:.82rem;line-height:1.25}
+.iname-sm{font-weight:bold;font-size:.72rem;line-height:1.2}
+.idice{border:1.5px solid #6a5040;padding:1px 4px;font-size:.65rem;white-space:nowrap;flex-shrink:0}
+.idef{border:1.5px solid #4a5838;padding:1px 5px;font-size:.65rem;white-space:nowrap;flex-shrink:0;background:rgba(72,88,56,.13);color:#2e3a20}
+.uses{font-size:.95rem;letter-spacing:4px;margin:6px 0 2px;color:#3a2010}
+.uses-sm{font-size:.82rem;letter-spacing:3px;margin:4px 0 2px;color:#3a2010}
+.ifoot{font-size:.68rem;color:var(--muted);font-style:italic}
+.del-btn{position:absolute;top:3px;right:4px;background:none;border:none;
+  cursor:pointer;font-size:1.2rem;line-height:1;color:#8a3010;padding:0 3px;z-index:2}
+.del-btn:hover{color:#cc2200}
+.move-btn{background:none;border:1px solid #6a5040;padding:2px 6px;
+  cursor:pointer;font-size:.75rem;color:#6a5040;border-radius:2px}
+.move-btn:hover{background:#7a6050;color:#f5ead0}
+.name-input{font-family:var(--body);font-size:.78rem;font-weight:bold;
+  background:rgba(255,255,255,.45);border:1px solid var(--accent);
+  padding:2px 4px;color:var(--brd);outline:none;width:100%}
+.name-input:focus{background:rgba(255,255,255,.72)}
+.save-btn,.load-btn{padding:8px 11px;border:1.5px solid var(--brd);background:#e0d9cf;cursor:pointer;font-size:1rem;white-space:nowrap}
+.save-btn:hover,.load-btn:hover{background:#cfc8be}
+.char-name-input{font-family:var(--body);font-size:1rem;background:rgba(255,255,255,.45);border:1px solid var(--accent);padding:3px 6px;color:var(--brd);outline:none;width:100%;border-radius:2px;}
+.char-name-input:focus{background:rgba(255,255,255,.72)}
+.add-card-btn{
+  display:block;width:100%;margin:8px 0 24px;padding:11px;
+  border:1.5px dashed var(--brd);background:transparent;
+  cursor:pointer;font-family:var(--gothic);font-size:1.15rem;
+  color:var(--brd);letter-spacing:.04em}
+.add-card-btn:hover{background:rgba(46,34,24,.06)}
+
+/* modal overlay */
+.modal-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
+  z-index:100;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{
+  background:var(--bg);border:2px solid var(--brd);
+  padding:22px 20px 18px;width:min(340px,92vw);
+  font-family:var(--body);position:relative}
+.modal h3{font-family:var(--gothic);font-size:1.5rem;margin-bottom:16px}
+.modal-close{
+  position:absolute;top:8px;right:12px;background:none;border:none;
+  font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1}
+.modal-close:hover{color:var(--brd)}
+.form-row{margin-bottom:12px}
+.form-row label{display:block;font-size:.78rem;color:var(--muted);
+  text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.form-row input[type=text]{
+  width:100%;padding:7px 9px;border:1.5px solid var(--brd);
+  background:#ede8df;font-family:var(--body);font-size:.95rem;
+  color:var(--brd);outline:none}
+.form-row input[type=text]:focus{background:#fff;border-color:var(--accent)}
+.seg{display:flex;gap:0}
+.seg button{
+  flex:1;padding:7px 4px;border:1.5px solid var(--brd);background:#ede8df;
+  cursor:pointer;font-family:var(--body);font-size:.82rem;
+  color:var(--brd);margin-left:-1px;transition:background .12s}
+.seg button:first-child{margin-left:0}
+.seg button.sel{background:var(--accent);color:#f5ead0;border-color:var(--accent);z-index:1}
+.modal-err{color:#8a2010;font-size:.82rem;margin-bottom:10px;min-height:1.1em}
+.modal-add-btn{
+  width:100%;padding:10px;border:1.5px solid var(--brd);
+  background:#c9b898;cursor:pointer;font-family:var(--gothic);
+  font-size:1.15rem;color:var(--brd)}
+.modal-add-btn:hover{background:#b8a888}
+.spells-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;
+  overflow:auto;padding:14px}
+.spells-modal.open{display:block}
+.magic-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;
+  overflow:auto;padding:14px}
+.magic-modal.open{display:block}
+.spells-content{background:var(--bg);border:2px solid var(--brd);padding:20px;
+  margin:20px auto;width:min(90vw,1000px);position:relative;max-height:90vh;overflow-y:auto}
+.magic-content{background:var(--bg);border:2px solid var(--brd);padding:20px;
+  margin:20px auto;width:min(90vw,1000px);position:relative;max-height:90vh;overflow-y:auto}
+.spells-close{position:absolute;top:8px;right:12px;background:none;border:none;
+  font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1}
+.spells-close:hover{color:var(--brd)}
+.magic-close{position:absolute;top:8px;right:12px;background:none;border:none;
+  font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1}
+.magic-close:hover{color:var(--brd)}
+.magic-title{font-family:var(--gothic);font-size:1.8rem;margin-bottom:16px}
+.magic-section{margin-bottom:20px}
+.magic-section h3{font-family:var(--gothic);font-size:1.3rem;color:var(--brd);border-bottom:2px solid var(--card);padding-bottom:8px;margin-bottom:12px}
+.magic-text{font-family:var(--body);font-size:0.95rem;line-height:1.6;color:var(--brd)}
+.magic-text p{margin-bottom:12px}
+.status-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;
+  overflow:auto;padding:14px}
+.status-modal.open{display:block}
+.status-content{background:var(--bg);border:2px solid var(--brd);padding:20px;
+  margin:20px auto;width:min(90vw,1000px);position:relative;max-height:90vh;overflow-y:auto}
+.status-close{position:absolute;top:8px;right:12px;background:none;border:none;
+  font-size:1.4rem;cursor:pointer;color:var(--muted);line-height:1}
+.status-close:hover{color:var(--brd)}
+.status-title{font-family:var(--gothic);font-size:1.8rem;margin-bottom:20px}
+.status-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px}
+.status-card{background:var(--card);border:2px solid var(--brd);padding:16px;cursor:pointer;
+  transition:all 0.2s;border-radius:4px}
+.status-card:hover{background:#b8a080;transform:translateY(-2px);box-shadow:0 4px 8px rgba(0,0,0,0.2)}
+.status-card-name{font-family:var(--gothic);font-size:1.2rem;color:var(--brd);margin-bottom:8px}
+.status-card-effect{font-size:0.9rem;color:var(--brd);margin-bottom:8px;line-height:1.4}
+.status-card-cure{font-size:0.8rem;color:var(--muted);font-style:italic;border-top:1px solid rgba(46,34,24,.2);padding-top:8px}
+.select-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:101;
+  justify-content:center;align-items:center}
+.select-modal.open{display:flex}
+.select-content{background:var(--bg);border:2px solid var(--brd);padding:20px;
+  width:min(90vw,500px);max-height:80vh;overflow-y:auto;border-radius:4px}
+.select-title{font-family:var(--gothic);font-size:1.4rem;margin-bottom:16px;color:var(--brd)}
+.select-list{display:flex;flex-direction:column;gap:8px}
+.select-item{background:var(--card);border:1px solid var(--brd);padding:12px;
+  cursor:pointer;transition:all 0.2s;border-radius:2px}
+.select-item:hover{background:#b8a080;border-color:var(--accent)}
+.select-item-name{font-family:var(--gothic);font-size:1rem;color:var(--brd)}
+.select-buttons{display:flex;gap:10px;margin-top:16px}
+.select-btn{flex:1;padding:10px;border:1px solid var(--brd);background:var(--card);
+  cursor:pointer;font-family:var(--gothic);color:var(--brd);transition:all 0.2s}
+.select-btn:hover{background:var(--accent);color:#f5ead0}
+.spells-table th{background:var(--lbl);border:1.5px solid var(--brd);padding:8px;
+  text-align:left;font-family:var(--gothic);font-size:.95rem;color:var(--brd)}
+.spells-table td{border:1.5px solid var(--brd);padding:8px;vertical-align:top;font-size:.85rem}
+.spells-table tr:nth-child(even) td{background:rgba(201,184,152,.15)}
+.roll-cell{font-weight:bold;color:var(--accent);text-align:center;width:60px}
+.name-cell{font-family:var(--gothic);color:var(--brd);min-width:100px}
+.effect-cell,.recharge-cell{color:var(--brd);line-height:1.3}
+.recharge-cell{font-size:.8rem;color:var(--muted);font-style:italic}
+@media(max-width:640px){
+  .spells-content{padding:14px;margin:10px auto;width:100%;max-height:85vh}
+  .spells-title{font-size:1.3rem;margin-bottom:12px}
+  .spells-table{display:block;border:none}
+  .spells-table thead{display:none}
+  .spells-table tbody{display:flex;flex-direction:column;gap:10px}
+  .spells-table tr{display:block;border:1.5px solid var(--brd);padding:12px;
+    background:rgba(201,184,152,.1);border-radius:4px;margin:0}
+  .spells-table tr:nth-child(even){background:rgba(201,184,152,.1)}
+  .spells-table td{display:flex;flex-direction:column;border:none;padding:0;margin-bottom:8px}
+  .spells-table td:last-child{margin-bottom:0}
+  .roll-cell{font-size:1rem;width:auto;text-align:left;margin-bottom:6px;
+    color:var(--accent);font-weight:bold;display:inline}
+  .roll-cell::before{content:"Roll: ";color:var(--muted);font-weight:normal;margin-right:4px}
+  .name-cell{font-family:var(--gothic);font-size:1.1rem;color:var(--brd);
+    margin-bottom:8px;min-width:auto}
+  .effect-cell{font-size:.9rem;color:var(--brd);line-height:1.4;margin-bottom:8px}
+  .effect-cell::before{content:"Эффект: ";color:var(--muted);font-size:.75rem;
+    display:block;margin-bottom:2px}
+  .recharge-cell{font-size:.85rem;color:var(--muted);font-style:italic;line-height:1.3}
+  .recharge-cell::before{content:"Перезарядка: ";color:var(--muted);font-size:.75rem;
+    display:block;margin-bottom:2px}
+  .magic-content{padding:14px;margin:10px auto;width:100%;max-height:85vh}
+  .magic-title{font-size:1.3rem;margin-bottom:12px}
+  .magic-section h3{font-size:1.05rem;margin-bottom:10px}
+  .magic-text{font-size:0.9rem;line-height:1.5}
+  .magic-text p{margin-bottom:10px}
+  .status-content{padding:14px;margin:10px auto;width:100%;max-height:85vh}
+  .status-title{font-size:1.3rem;margin-bottom:16px}
+  .status-grid{grid-template-columns:1fr;gap:12px}
+  .status-card{padding:12px}
+  .status-card-name{font-size:1.1rem;margin-bottom:6px}
+  .status-card-effect{font-size:0.85rem;margin-bottom:6px}
+  .status-card-cure{font-size:0.75rem;padding-top:6px}
+}
+@media(max-width:360px){.title{font-size:1.5rem}.iname{font-size:.72rem}.iname-sm{font-size:.65rem}}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 class="title">Храбрый мышиный авантюрист...</h1>
+  <div class="btn-row">
+    <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">☰</button>
+    <input type="file" id="fileIn" accept=".json" style="display:none">
+  </div>
+</div>
+
+<!-- Menu Panel -->
+<div class="menu-overlay" id="menuOverlay" onclick="toggleMenu()"></div>
+<div class="menu-panel" id="menuPanel">
+  <button class="menu-btn edit-btn" id="editBtn" onclick="toggleEdit();toggleMenu()">Правка</button>
+  <button class="menu-btn roll-btn" id="rollBtn" onclick="rollNew()">Ещё раз</button>
+  <button class="menu-btn" onclick="openSpells();toggleMenu()" title="Гримуар">📖 Гримуар</button>
+  <button class="menu-btn" onclick="openMagic();toggleMenu()" title="Правила магии">✨ Магия</button>
+  <button class="menu-btn" onclick="openStatus();toggleMenu()" title="Состояния">👹 Состояния</button>
+  <button class="menu-btn" onclick="saveChar();toggleMenu()" title="Сохранить">💾 Сохранить</button>
+  <button class="menu-btn" onclick="document.getElementById('fileIn').click();toggleMenu()" title="Загрузить">📂 Загрузить</button>
+</div>
+
+<div class="top-row">
+  <div class="identity-wrap">
+    <table class="identity-table">
+      <tr><td class="id-label">Имя</td><td id="cName"></td></tr>
+      <tr><td class="id-label">Происхождение</td><td id="cBg"></td></tr>
+    </table>
+  </div>
+  <div class="details-panel">
+    <div class="detail-row"><span class="detail-label">Знак рождения: </span><span class="detail-val" id="cSign"></span></div>
+    <div class="detail-row"><span class="detail-label">Склонности: </span><span class="detail-val" id="cDisp"></span></div>
+    <div class="detail-row"><span class="detail-label">Окрас: </span><span class="detail-val" id="cCoat"></span></div>
+    <div class="detail-row"><span class="detail-label">Особенность: </span><span class="detail-val" id="cPhys"></span></div>
+  </div>
+</div>
+
+<div class="stats-section" id="statsArea"></div>
+
+<div class="sec-hdr">
+  <h2 class="sec-title">Экипировка</h2>
+  <div class="pips-badge">Зёрна: <strong id="cPips"></strong></div>
+</div>
+<div class="equip-grid" id="equipGrid"></div>
+
+<h2 class="sec-title" style="margin-bottom:10px">Мешок</h2>
+<div class="bag-grid" id="bagGrid"></div>
+
+<script>
+
+var INIT = {{ character | tojson }};
+
+var cardMap  = {};
+var usage    = {};
+var statMax  = {};
+var statCur  = {};
+var editMode = false;
+var curChar  = null;
+var _tapLock = {};  // ghost-click guard: id → timestamp of last valid tap
+var rollClickCount = 0;  // для отслеживания нажатий на кнопку "Ещё раз"
+var selectedStatusToAdd = null;  // для отслеживания выбранного состояния
+
+var STATUSES = [
+  {id: "exhausted", name: "Изнурён", effect: "", cure: "Длительный отдых"},
+  {id: "scared", name: "Испуган", effect: "Спасбросок воли, когда персонаж приближается к источнику страха.", cure: "Передышка"},
+  {id: "hungry", name: "Голоден", effect: "", cure: "Приём пищи"},
+  {id: "wounded", name: "Ранен", effect: "Помеха к спасброскам силы и ловкости.", cure: "Полный отдых"},
+  {id: "depleted", name: "Опустошён", effect: "Помеха к спасброскам воли.", cure: "Полный отдых"}
+];
+
+var EQUIP_IDS    = ["eq_main","eq_off","eq_arm1","eq_arm2"];
+var EQUIP_LABELS = ["Осн. лапа","Вторая лапа","Броня","Броня"];
+
+function initFromChar(c) {
+  curChar = c;
+  var eq = c.equipped || {};
+  cardMap = {
+    eq_main: eq.main_hand || null,
+    eq_off:  eq.off_hand  || null,
+    eq_arm1: eq.armor1    || null,
+    eq_arm2: eq.armor2    || null
+  };
+  var bag = c.bag || [];
+  for (var i = 0; i < 9; i++) cardMap["b" + i] = bag[i] || null;
+  usage = {};
+  Object.keys(cardMap).forEach(function(id){ usage[id] = 0; });
+  statMax = {str: c.str_val, dex: c.dex_val, wil: c.wil_val, hp: c.hp};
+  statCur = {str: c.str_val, dex: c.dex_val, wil: c.wil_val, hp: c.hp};
+}
+
+function $t(id, v){ var e = document.getElementById(id); if (e) e.textContent = v; }
+
+function esc(s) {
+  return String(s || "")
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function getDef(item) {
+  if (item.def != null) return item.def;
+  if (item.weight === "тяжёлое") return 2;
+  if (item.weight === "среднее") return 1;
+  return 0;
+}
+
+function dotsStr(n) {
+  // n = 0..3 filled dots; returns plain Unicode (safe in textContent and innerHTML)
+  var FILL = "\u25CF", OPEN = "\u25CB";
+  return (n > 0 ? FILL : OPEN) + (n > 1 ? FILL : OPEN) + (n > 2 ? FILL : OPEN);
+}
+
+function footer(item) {
+  if (!item) return "";
+  if (item.type === "armour")   return "Броня";
+  if (item.type === "spell")    return "Заклинание";
+  if (item.type === "hireling") return "Наёмник";
+  if (item.weight) return item.weight[0].toUpperCase() + item.weight.slice(1);
+  return "";
+}
+
+function cardHTML(id, small) {
+  var item = cardMap[id];
+  var nc = small ? "iname-sm" : "iname";
+  var uc = small ? "uses-sm"  : "uses";
+
+  if (!item)
+    return '<div class="card empty" data-id="' + id + '">&mdash;</div>';
+
+  // Обработка состояний
+  if (item.type === "status") {
+    var cls = "card status";
+    if (editMode) {
+      return '<div class="' + cls + '" data-id="' + id + '">'
+        + '<button class="del-btn" data-del="' + id + '" title="Удалить">&times;</button>'
+        + '<div style="padding:8px;text-align:center">'
+        + '<div class="' + nc + '">' + esc(item.name || "") + '</div>'
+        + '</div>'
+        + '</div>';
+    }
+    return '<div class="' + cls + '" data-id="' + id + '">'
+      + '<div style="padding:8px;text-align:center">'
+      + '<div class="' + nc + '">' + esc(item.name || "") + '</div>'
+      + '<button class="del-btn" data-del="' + id + '" title="Удалить" style="font-size:0.8rem;margin-top:4px">&times;</button>'
+      + '</div>'
+      + '</div>';
+  }
+
+  var w   = item.weight || "";
+  var t   = item.type   || "";
+  var cls = "card" + (w ? " " + w : "") + " " + t;
+  var ft  = footer(item);
+  var dc  = item.dice
+    ? '<span class="idice">' + esc(item.dice) + '</span>'
+    : (item.type === 'armour')
+      ? '<span class="idef">def ' + getDef(item) + '</span>'
+      : "";
+
+  if (editMode) {
+    return '<div class="' + cls + '" data-id="' + id + '">'
+      + '<button class="del-btn" data-del="' + id + '" title="Удалить">&times;</button>'
+      + '<div><div class="nrow">'
+      + '<input class="name-input" type="text" value="' + esc(item.name || "") + '" data-nameid="' + id + '">'
+      + dc
+      + '</div></div>'
+      + '<div class="ifoot">' + ft + '</div>'
+      + '</div>';
+  }
+
+  // Кнопка переноса для оружия и брони
+  var moveBtn = "";
+  if (item.type === "weapon") {
+    var isInBag = id.charAt(0) === 'b';
+    var isInHand = id === "eq_main" || id === "eq_off";
+    if (isInBag) {
+      moveBtn = '<button class="move-btn" data-move="equip-weapon" data-id="' + id + '" title="Взять в лапки">↑</button>';
+    } else if (isInHand) {
+      moveBtn = '<button class="move-btn" data-move="unequip-weapon" data-id="' + id + '" title="Положить в мешок">↓</button>';
+    }
+  } else if (item.type === "armour") {
+    var isInBag = id.charAt(0) === 'b';
+    var isInArmour = id === "eq_arm1" || id === "eq_arm2";
+    if (isInBag) {
+      moveBtn = '<button class="move-btn" data-move="equip-armour" data-id="' + id + '" title="Надеть">↑</button>';
+    } else if (isInArmour) {
+      moveBtn = '<button class="move-btn" data-move="unequip-armour" data-id="' + id + '" title="Снять">↓</button>';
+    }
+  }
+
+  return '<div class="' + cls + '" data-id="' + id + '">'
+    + '<div><div class="nrow">'
+    + '<div class="' + nc + '">' + esc(item.name || "") + '</div>'
+    + dc
+    + '</div>'
+    + '<div class="' + uc + '" id="u_' + id + '">' + dotsStr(usage[id]||0) + '</div>'
+    + (moveBtn ? '<div style="text-align:center;margin-top:2px">' + moveBtn + '</div>' : '')
+    + '</div>'
+    + '<div class="ifoot">' + ft + '</div>'
+    + '</div>';
+}
+
+// ── Event delegation — the only place interactions are wired ──────────────
+document.addEventListener("click", function(e) {
+  // Move button (equip/unequip weapon or armour)
+  var moveBtn = e.target.closest("[data-move]");
+  if (moveBtn) {
+    e.stopPropagation();
+    var action = moveBtn.getAttribute("data-move");
+    var cardId = moveBtn.getAttribute("data-id");
+    if (action === "equip-weapon") {
+      handleEquipWeapon(cardId);
+    } else if (action === "unequip-weapon") {
+      handleUnequipWeapon(cardId);
+    } else if (action === "equip-armour") {
+      handleEquipArmour(cardId);
+    } else if (action === "unequip-armour") {
+      handleUnequipArmour(cardId);
+    }
+    return;
+  }
+  // Delete button (must check before card tap)
+  var delEl = e.target.closest("[data-del]");
+  if (delEl) {
+    var did = delEl.getAttribute("data-del");
+    cardMap[did] = null;
+    if (EQUIP_IDS.indexOf(did) >= 0) renderEquip(); else renderBag();
+    return;
+  }
+  // Card tap: cycle usage dots (view mode only)
+  if (!editMode) {
+    var card = e.target.closest("[data-id]");
+    if (card && !card.classList.contains("empty")) {
+      var id = card.getAttribute("data-id");
+      // Guard against ghost-clicks (mobile fires touchend + synthetic click)
+      var now = Date.now();
+      if (_tapLock[id] && now - _tapLock[id] < 350) return;
+      _tapLock[id] = now;
+      // Increment usage 0→1→2→3→0 looped
+      usage[id] = ((usage[id] || 0) + 1) % 4;
+      var el = document.getElementById("u_" + id);
+      // textContent avoids innerHTML re-parse which can trigger ghost click
+      if (el) el.textContent = dotsStr(usage[id]);
+    }
+  }
+});
+
+document.addEventListener("input", function(e) {
+  if (e.target.getAttribute("data-charname")) {
+    curChar.name = e.target.value;
+    return;
+  }
+  if (e.target.getAttribute("data-pips")) {
+    curChar.pips = parseInt(e.target.value) || 0;
+    return;
+  }
+  if (e.target.classList.contains("name-input")) {
+    var id = e.target.getAttribute("data-nameid");
+    if (cardMap[id]) cardMap[id] = Object.assign({}, cardMap[id], {name: e.target.value});
+  }
+  if (e.target.classList.contains("stat-input")) {
+    var k = e.target.getAttribute("data-key");
+    var w = e.target.getAttribute("data-which");
+    var v = parseInt(e.target.value) || 0;
+    if (w === "max") statMax[k] = Math.max(1, v);
+    else             statCur[k] = Math.max(0, v);
+  }
+});
+
+// ── Render ────────────────────────────────────────────────────────────────
+function renderStats() {
+  var L = ["СИЛ","ЛОВ","ВОЛ","ОЗ"], K = ["str","dex","wil","hp"];
+  var h = '<div class="stat-headers"><div></div><div>Макс</div><div>Тек.</div></div>';
+  for (var i = 0; i < 4; i++) {
+    var k = K[i], mx = statMax[k] || 0, cur = statCur[k] || 0;
+    if (editMode) {
+      h += '<div class="stat-row">'
+        + '<div class="stat-label">' + L[i] + '</div>'
+        + '<div class="stat-val"><input class="stat-input" type="number" min="1" max="20"'
+        + ' value="' + mx + '" data-key="' + k + '" data-which="max"></div>'
+        + '<div class="stat-val"><input class="stat-input" type="number" min="0" max="20"'
+        + ' value="' + cur + '" data-key="' + k + '" data-which="cur"></div>'
+        + '</div>';
+    } else {
+      h += '<div class="stat-row">'
+        + '<div class="stat-label">' + L[i] + '</div>'
+        + '<div class="stat-val">' + mx + '</div>'
+        + '<div class="stat-val">' + cur + '</div>'
+        + '</div>';
+    }
+  }
+  document.getElementById("statsArea").innerHTML = h;
+}
+
+function renderEquip() {
+  var h = "";
+  for (var i = 0; i < 4; i++)
+    h += '<div class="equip-slot"><div class="slot-lbl">' + EQUIP_LABELS[i] + '</div>'
+       + cardHTML(EQUIP_IDS[i], false) + '</div>';
+  document.getElementById("equipGrid").innerHTML = h;
+}
+
+function renderBag() {
+  var h = "";
+  for (var i = 0; i < 9; i++)
+    h += '<div class="bag-slot">' + cardHTML("b" + i, true) + '</div>';
+  document.getElementById("bagGrid").innerHTML = h;
+}
+
+function renderIdentity(c) {
+  if (editMode) {
+    var _ne = document.getElementById("cName");
+    if (_ne) _ne.innerHTML =
+      '<input class="char-name-input" type="text"'
+      + ' value="' + esc(c.name || "") + '"'
+      + ' data-charname="1">';
+    var _pe = document.getElementById("cPips");
+    if (_pe) _pe.innerHTML =
+      '<input class="pips-input" type="number" min="0" max="999"'
+      + ' value="' + (c.pips || 0) + '"'
+      + ' data-pips="1">';
+  } else {
+    $t("cName", c.name || "");
+    $t("cPips", c.pips || "");
+  }
+  $t("cBg",   c.background || "");
+  $t("cSign", c.birthsign || ""); $t("cDisp", c.disposition || "");
+  $t("cCoat", c.coat || "");      $t("cPhys", c.physical_detail || "");
+}
+
+function renderAll() {
+  renderIdentity(curChar);
+  renderStats();
+  renderEquip();
+  renderBag();
+}
+
+// ── Weapon transfer ───────────────────────────────────────────────────────
+function showError(msg) {
+  document.getElementById("errorMsg").textContent = msg;
+  document.getElementById("errorOverlay").classList.add("open");
+}
+
+function handleEquipWeapon(bagId) {
+  var item = cardMap[bagId];
+  if (!item) return;
+  
+  // Find free hand slot
+  var freeSlot = null;
+  if (!cardMap["eq_main"]) freeSlot = "eq_main";
+  else if (!cardMap["eq_off"]) freeSlot = "eq_off";
+  
+  if (!freeSlot) {
+    showError("Нет свободных лап! Положите оружие из лап в мешок.");
+    return;
+  }
+  
+  // Move weapon
+  cardMap[freeSlot] = item;
+  usage[freeSlot] = usage[bagId] || 0;
+  cardMap[bagId] = null;
+  delete usage[bagId];
+  
+  renderBag();
+  renderEquip();
+}
+
+function handleUnequipWeapon(handId) {
+  var item = cardMap[handId];
+  if (!item) return;
+  
+  // Find free bag slot
+  var freeSlot = null;
+  for (var i = 0; i < 9; i++) {
+    if (!cardMap["b" + i]) {
+      freeSlot = "b" + i;
+      break;
+    }
+  }
+  
+  if (!freeSlot) {
+    showError("Нет места в мешке! Выбросьте что-нибудь, чтобы освободить место.");
+    return;
+  }
+  
+  // Move weapon
+  cardMap[freeSlot] = item;
+  usage[freeSlot] = usage[handId] || 0;
+  cardMap[handId] = null;
+  delete usage[handId];
+  
+  renderBag();
+  renderEquip();
+}
+
+function handleEquipArmour(bagId) {
+  var item = cardMap[bagId];
+  if (!item) return;
+  
+  // Find free armour slot
+  var freeSlot = null;
+  if (!cardMap["eq_arm1"]) freeSlot = "eq_arm1";
+  else if (!cardMap["eq_arm2"]) freeSlot = "eq_arm2";
+  
+  if (!freeSlot) {
+    showError("Нет свободных мест для брони! Снимите броню, чтобы надеть новую.");
+    return;
+  }
+  
+  // Move armour
+  cardMap[freeSlot] = item;
+  usage[freeSlot] = usage[bagId] || 0;
+  cardMap[bagId] = null;
+  delete usage[bagId];
+  
+  renderBag();
+  renderEquip();
+}
+
+function handleUnequipArmour(armourId) {
+  var item = cardMap[armourId];
+  if (!item) return;
+  
+  // Find free bag slot
+  var freeSlot = null;
+  for (var i = 0; i < 9; i++) {
+    if (!cardMap["b" + i]) {
+      freeSlot = "b" + i;
+      break;
+    }
+  }
+  
+  if (!freeSlot) {
+    showError("Нет места в мешке! Выбросьте что-нибудь, чтобы освободить место.");
+    return;
+  }
+  
+  // Move armour
+  cardMap[freeSlot] = item;
+  usage[freeSlot] = usage[armourId] || 0;
+  cardMap[armourId] = null;
+  delete usage[armourId];
+  
+  renderBag();
+  renderEquip();
+}
+
+// ── Controls ──────────────────────────────────────────────────────────────
+function toggleEdit() {
+  editMode = !editMode;
+  document.body.classList.toggle("edit-mode", editMode);
+  var eb = document.getElementById("editBtn");
+  eb.textContent = editMode ? "Готово" : "Правка";
+  eb.classList.toggle("active", editMode);
+  document.getElementById("rollBtn").disabled = editMode;
+  renderStats(); renderEquip(); renderBag(); renderIdentity(curChar);
+}
+
+function rollNew() {
+  if (editMode) return;
+  var btn = document.getElementById("rollBtn") || document.querySelector('[id="rollBtn"]');
+  var menuBtn = document.querySelector('.menu-btn.roll-btn');
+  
+  // Увеличиваем счетчик нажатий
+  rollClickCount++;
+  
+  // Если нажали менее 4 раз - трясем кнопку и обновляем стиль
+  if (rollClickCount < 4) {
+    btn.classList.add('unlock-shake');
+    setTimeout(function() { btn.classList.remove('unlock-shake'); }, 200);
+    
+    // Обновляем класс для grayscale: click 1 = unlock-2, click 2 = unlock-1, click 3 = готова
+    btn.classList.remove('unlock-0', 'unlock-1', 'unlock-2', 'unlock-3');
+    if (rollClickCount === 1) {
+      btn.classList.add('unlock-2');
+    } else if (rollClickCount === 2) {
+      btn.classList.add('unlock-1');
+    }
+    // При rollClickCount === 3 никаких классов - полностью живая
+    
+    if (menuBtn) {
+      menuBtn.classList.remove('unlock-0', 'unlock-1', 'unlock-2', 'unlock-3');
+      if (rollClickCount === 1) {
+        menuBtn.classList.add('unlock-2');
+      } else if (rollClickCount === 2) {
+        menuBtn.classList.add('unlock-1');
+      }
+      menuBtn.classList.add('unlock-shake');
+      setTimeout(function() { menuBtn.classList.remove('unlock-shake'); }, 200);
+    }
+    return;
+  }
+  
+  // После 4 нажатий генерируем нового персонажа
+  btn.disabled = true; 
+  btn.textContent = "Бросаем...";
+  btn.classList.remove('unlock-0', 'unlock-1', 'unlock-2');
+  
+  if (menuBtn) {
+    menuBtn.disabled = true;
+    menuBtn.textContent = "Бросаем...";
+    menuBtn.classList.remove('unlock-0', 'unlock-1', 'unlock-2');
+  }
+  
+  fetch("/roll").then(function(r){ return r.json(); })
+    .then(function(c){
+      initFromChar(c); renderAll();
+      rollClickCount = 0; // Сбрасываем счетчик
+      btn.disabled = false; 
+      btn.textContent = "Ещё раз";
+      btn.classList.remove('unlock-0', 'unlock-1', 'unlock-2', 'unlock-3');
+      btn.classList.add('unlock-3'); // Снова очень серая
+      
+      if (menuBtn) {
+        menuBtn.disabled = false;
+        menuBtn.textContent = "Ещё раз";
+        menuBtn.classList.remove('unlock-0', 'unlock-1', 'unlock-2', 'unlock-3');
+        menuBtn.classList.add('unlock-3');
+      }
+      
+      // Закрываем меню только после успешной генерации
+      if (document.querySelector('.menu-panel.active')) {
+        toggleMenu();
+      }
+    }).catch(function(){ location.reload(); });
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────
+// Сохранение / Загрузка
+function saveChar() {
+  var ni = document.querySelector(".char-name-input");
+  if (ni) curChar.name = ni.value;
+  var pi = document.querySelector(".pips-input");
+  if (pi) curChar.pips = parseInt(pi.value) || 0;
+  var state = {
+    v: 1,
+    meta: {
+      name:            curChar.name            || "",
+      background:      curChar.background      || "",
+      birthsign:       curChar.birthsign       || "",
+      disposition:     curChar.disposition     || "",
+      coat:            curChar.coat            || "",
+      physical_detail: curChar.physical_detail || "",
+      pips:            curChar.pips            || 0
+    },
+    statMax: statMax,
+    statCur: statCur,
+    cardMap: cardMap,
+    usage:   usage
+  };
+  var json = JSON.stringify(state, null, 2);
+  var blob = new Blob([json], {type: "application/json"});
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement("a");
+  a.href     = url;
+  a.download = (curChar.name || "мышь") + ".json";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+document.getElementById("fileIn").addEventListener("change", function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(ev) {
+    try {
+      var s = JSON.parse(ev.target.result);
+      if (!s.v || !s.meta || !s.statMax || !s.cardMap)
+        throw new Error("Неверный формат файла");
+      curChar          = Object.assign({}, curChar || {}, s.meta);
+      curChar.str_val  = s.statMax.str;
+      curChar.dex_val  = s.statMax.dex;
+      curChar.wil_val  = s.statMax.wil;
+      curChar.hp       = s.statMax.hp;
+      statMax  = s.statMax;
+      statCur  = s.statCur;
+      cardMap  = s.cardMap;
+      usage    = s.usage || {};
+      _tapLock = {};
+      if (editMode) {
+        editMode = false;
+        document.body.classList.remove("edit-mode");
+        var eb = document.getElementById("editBtn");
+        eb.textContent = "Правка";
+        eb.classList.remove("active");
+        document.getElementById("rollBtn").disabled = false;
+      }
+      renderAll();
+    } catch(err) {
+      alert("Ошибка загрузки: " + err.message);
+    }
+    e.target.value = "";
+  };
+  reader.readAsText(file);
+});
+
+// ── V5: Add Card Modal ───────────────────────────────────────────────────
+var _mType   = "item";
+var _mWeight = "";
+var _mDice   = "d6";
+var _mDef    = 1;
+
+function openModal() {
+  // reset form
+  _mType = "item"; _mWeight = ""; _mDice = "d6"; _mDef = 1;
+  selBtn("segType",   "item");
+  selBtn("segWeight", "");
+  selBtn("segDice",   "d6");
+  selBtn("segDef",    "1");
+  document.getElementById("cardName").value = "";
+  document.getElementById("modalErr").textContent = "";
+  document.getElementById("diceRow").style.display = "none";
+  document.getElementById("defRow").style.display  = "none";
+  document.getElementById("modalOverlay").classList.add("open");
+  setTimeout(function(){ document.getElementById("cardName").focus(); }, 80);
+}
+
+function closeModal() {
+  document.getElementById("modalOverlay").classList.remove("open");
+}
+
+function overlayClick(e) {
+  if (e.target === document.getElementById("modalOverlay")) closeModal();
+}
+
+function selBtn(groupId, val) {
+  var btns = document.getElementById(groupId).querySelectorAll("button");
+  btns.forEach(function(b){ b.classList.toggle("sel", b.getAttribute("data-val") === val); });
+}
+
+function pick(kind, btn) {
+  var val = btn.getAttribute("data-val");
+  if (kind === "type") {
+    _mType = val;
+    selBtn("segType", val);
+    document.getElementById("diceRow").style.display = (val === "weapon") ? "" : "none";
+    document.getElementById("defRow").style.display  = (val === "armour") ? "" : "none";
+  } else if (kind === "weight") {
+    _mWeight = val;
+    selBtn("segWeight", val);
+  } else if (kind === "dice") {
+    _mDice = val;
+    selBtn("segDice", val);
+  } else if (kind === "def") {
+    _mDef = parseInt(val);
+    selBtn("segDef", val);
+  }
+}
+
+function addCard() {
+  var name = document.getElementById("cardName").value.trim();
+  var err  = document.getElementById("modalErr");
+  err.textContent = "";
+
+  if (!name) { err.textContent = "Укажите название."; return; }
+
+  var newCard = {
+    name:   name,
+    type:   _mType,
+    weight: _mWeight || null,
+    dice:   (_mType === "weapon") ? _mDice : null,
+    def:    (_mType === "armour") ? _mDef  : null
+  };
+
+  // Find first empty bag slot
+  var placed = false;
+  for (var i = 0; i < 9; i++) {
+    if (!cardMap["b" + i]) {
+      cardMap["b" + i] = newCard;
+      usage["b" + i]   = 0;
+      placed = true;
+      break;
+    }
+  }
+
+  // Bag full — try equip slots
+  if (!placed) {
+    var equipSlots = (_mType === "weapon")
+      ? ["eq_main", "eq_off"]
+      : (_mType === "armour")
+        ? ["eq_arm1", "eq_arm2"]
+        : [];
+    for (var j = 0; j < equipSlots.length; j++) {
+      var sid = equipSlots[j];
+      if (!cardMap[sid]) {
+        cardMap[sid] = newCard;
+        usage[sid]   = 0;
+        placed = true;
+        break;
+      }
+    }
+  }
+
+  if (!placed) {
+    err.textContent = "Инвентарь полон. Удалите что-нибудь перед добавлением.";
+    return;
+  }
+
+  renderBag();
+  renderEquip();
+  closeModal();
+}
+
+// ── Menu Toggle ───────────────────────────────────────────────────────────
+function toggleMenu() {
+  var menuPanel = document.getElementById("menuPanel");
+  var menuOverlay = document.getElementById("menuOverlay");
+  menuPanel.classList.toggle("open");
+  menuOverlay.classList.toggle("open");
+}
+
+// ── Spells Modal ──────────────────────────────────────────────────────────
+function openSpells() {
+  document.getElementById("spellsModal").classList.add("open");
+}
+
+function closeSpells() {
+  document.getElementById("spellsModal").classList.remove("open");
+}
+
+function openMagic() {
+  document.getElementById("magicModal").classList.add("open");
+}
+
+function closeMagic() {
+  document.getElementById("magicModal").classList.remove("open");
+}
+
+function openStatus() {
+  var grid = document.getElementById("statusGrid");
+  grid.innerHTML = "";
+  STATUSES.forEach(function(status) {
+    var card = document.createElement("div");
+    card.className = "status-card";
+    card.innerHTML = '<div class="status-card-name">' + status.name + '</div>';
+    if (status.effect) {
+      card.innerHTML += '<div class="status-card-effect">' + status.effect + '</div>';
+    }
+    card.innerHTML += '<div class="status-card-cure"><strong>Избавиться:</strong> ' + status.cure + '</div>';
+    card.onclick = function() { addStatusToInventory(status); };
+    grid.appendChild(card);
+  });
+  document.getElementById("statusModal").classList.add("open");
+}
+
+function closeStatus() {
+  document.getElementById("statusModal").classList.remove("open");
+}
+
+function addStatusToInventory(status) {
+  // Проверяем свободные слоты в мешке
+  var freeBagSlot = null;
+  for (var i = 0; i < 9; i++) {
+    if (!cardMap["b" + i]) {
+      freeBagSlot = i;
+      break;
+    }
+  }
+  
+  if (freeBagSlot !== null) {
+    // Есть свободное место - добавляем состояние
+    var statusCard = {type: "status", name: status.name, id: status.id};
+    cardMap["b" + freeBagSlot] = statusCard;
+    renderBag();
+    closeStatus();
+  } else {
+    // Нет свободного места - показываем список для удаления
+    selectedStatusToAdd = status;
+    showSelectModal();
+  }
+}
+
+function showSelectModal() {
+  var list = document.getElementById("selectList");
+  list.innerHTML = "";
+  var hasItems = false;
+  
+  // Показываем все предметы в мешке и руках (которые можно удалить)
+  for (var i = 0; i < 9; i++) {
+    var item = cardMap["b" + i];
+    if (item) {
+      hasItems = true;
+      createSelectItem(item, "b" + i, list);
+    }
+  }
+  
+  if (!hasItems) {
+    list.innerHTML = '<div style="padding:10px;text-align:center;color:var(--muted)">Нечего удалять!</div>';
+  }
+  
+  document.getElementById("selectModal").classList.add("open");
+}
+
+function createSelectItem(item, slotId, container) {
+  var itemDiv = document.createElement("div");
+  itemDiv.className = "select-item";
+  var name = item.name || (item.type === "status" ? item.name : item.type);
+  itemDiv.innerHTML = '<div class="select-item-name">' + name + '</div>';
+  itemDiv.onclick = function() {
+    deleteItemAndAddStatus(slotId);
+  };
+  container.appendChild(itemDiv);
+}
+
+function deleteItemAndAddStatus(slotId) {
+  // Удаляем предмет
+  cardMap[slotId] = null;
+  
+  // Добавляем состояние на его место
+  cardMap[slotId] = {type: "status", name: selectedStatusToAdd.name, id: selectedStatusToAdd.id};
+  selectedStatusToAdd = null;
+  
+  renderBag();
+  closeSelectModal();
+  closeStatus();
+}
+
+function closeSelectModal() {
+  document.getElementById("selectModal").classList.remove("open");
+  selectedStatusToAdd = null;
+}
+
+document.addEventListener("click", function(e) {
+  var spellsModal = document.getElementById("spellsModal");
+  if (e.target === spellsModal) closeSpells();
+  var magicModal = document.getElementById("magicModal");
+  if (e.target === magicModal) closeMagic();
+  var statusModal = document.getElementById("statusModal");
+  if (e.target === statusModal) closeStatus();
+});
+
+initFromChar(INIT);
+renderAll();
+
+// Инициализируем кнопку "Ещё раз" в очень сером состоянии
+var rollBtn = document.getElementById("rollBtn");
+if (rollBtn) rollBtn.classList.add('unlock-3');
+var menuRollBtn = document.querySelector('.menu-btn.roll-btn');
+if (menuRollBtn) menuRollBtn.classList.add('unlock-3');
+
+</script>
+<!-- Add Card button -->
+<button class="add-card-btn" onclick="openModal()">+ Добавить карточку</button>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay" onclick="overlayClick(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">&times;</button>
+    <h3>Новая карточка</h3>
+
+    <div class="form-row">
+      <label>Тип</label>
+      <div class="seg" id="segType">
+        <button class="sel" data-val="item"   onclick="pick('type',this)">Предмет</button>
+        <button          data-val="weapon" onclick="pick('type',this)">Оружие</button>
+        <button          data-val="armour" onclick="pick('type',this)">Броня</button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>Весовой класс</label>
+      <div class="seg" id="segWeight">
+        <button class="sel" data-val=""         onclick="pick('weight',this)">&mdash;</button>
+        <button          data-val="лёгкое"  onclick="pick('weight',this)">Лёгкое</button>
+        <button          data-val="среднее" onclick="pick('weight',this)">Среднее</button>
+        <button          data-val="тяжёлое" onclick="pick('weight',this)">Тяжёлое</button>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <label>Название</label>
+      <input type="text" id="cardName" placeholder="Имя предмета...">
+    </div>
+
+    <div class="form-row" id="diceRow" style="display:none">
+      <label>Урон</label>
+      <div class="seg" id="segDice">
+        <button class="sel" data-val="d6"    onclick="pick('dice',this)">d6</button>
+        <button          data-val="d8"    onclick="pick('dice',this)">d8</button>
+        <button          data-val="d6/d8" onclick="pick('dice',this)">d6/d8</button>
+        <button          data-val="d10"   onclick="pick('dice',this)">d10</button>
+      </div>
+    </div>
+
+    <div class="form-row" id="defRow" style="display:none">
+      <label>Защита (def)</label>
+      <div class="seg" id="segDef">
+        <button          data-val="0" onclick="pick('def',this)">0</button>
+        <button class="sel" data-val="1" onclick="pick('def',this)">1</button>
+        <button          data-val="2" onclick="pick('def',this)">2</button>
+      </div>
+    </div>
+
+    <div class="modal-err" id="modalErr"></div>
+    <button class="modal-add-btn" onclick="addCard()">Добавить</button>
+  </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal-overlay" id="errorOverlay" onclick="if(event.target===this) this.classList.remove('open')">
+  <div class="modal" style="text-align:center">
+    <button class="modal-close" onclick="document.getElementById('errorOverlay').classList.remove('open')">&times;</button>
+    <h3>Ошибка</h3>
+    <p id="errorMsg" style="font-size:.95rem; margin:16px 0"></p>
+    <button class="modal-add-btn" onclick="document.getElementById('errorOverlay').classList.remove('open')">Ясно</button>
+  </div>
+</div>
+
+<!-- Spells Modal -->
+<div class="spells-modal" id="spellsModal" onclick="if(event.target===this) closeSpells()">
+  <div class="spells-content">
+    <button class="spells-close" onclick="closeSpells()">&times;</button>
+    <h2 class="spells-title">Гримуар Заклинаний</h2>
+    <table class="spells-table">
+      <thead>
+        <tr>
+          <th class="roll-cell">2d8</th>
+          <th class="name-cell">Заклинание</th>
+          <th>Эффект</th>
+          <th>Перезарядка</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="roll-cell">2</td>
+          <td class="name-cell">Огненный шар</td>
+          <td class="effect-cell">Стреляет огненным шаром на расстояние до 24 дюймов. Наносит [сум] + [мощь] урона всем существам в радиусе 6 дюймов</td>
+          <td class="recharge-cell">Закаливать в самом сердце бушующего пламени три дня и три ночи</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">3</td>
+          <td class="name-cell">Исцеление</td>
+          <td class="effect-cell">Лечит [сум] урона по силе и убирает карточку состояния «Ранен» с существа</td>
+          <td class="recharge-cell">Нанести себе порез и окропить табличку кровью. Заклинатель получает d6 урона, который снижает значение силы, минуя общую защиту</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">4</td>
+          <td class="name-cell">Магический снаряд</td>
+          <td class="effect-cell">Наносит [сум] + [мощь] урона существу в пределах видимости</td>
+          <td class="recharge-cell">Бросить табличку с заклинанием с высоты не менее 30 футов и коснуться её в течение одного хода</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">5</td>
+          <td class="name-cell">Страх</td>
+          <td class="effect-cell">[мощь] существ получают состояние «Испуган»</td>
+          <td class="recharge-cell">Получить состояние «Испуган» от враждебного существа, удерживая заклинание в лапах</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">6</td>
+          <td class="name-cell">Тьма</td>
+          <td class="effect-cell">Создаёт сферу абсолютной тьмы диаметром [сум]х2 дюйма на [мощь] ходов</td>
+          <td class="recharge-cell">На три дня оставить непокрытым в месте, куда не попадает свет</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">7</td>
+          <td class="name-cell">Восстановление</td>
+          <td class="effect-cell">Убирает карточку состояния «Изнурён» или «Испуган» с [мощь]+1 существ</td>
+          <td class="recharge-cell">Закопать на три дня на спокойном лугу или берегу реки</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">8</td>
+          <td class="name-cell">Открытое сердце</td>
+          <td class="effect-cell">Делает намерения заклинателя понятными для [мощь] существ других видов на [мощь] ходов</td>
+          <td class="recharge-cell">Добровольно подарить существу другого вида</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">9</td>
+          <td class="name-cell">Жук-призрак</td>
+          <td class="effect-cell">Создаёт призрачного жука, который может нести 6 ячеек снаряжения на [мощь]х6 ходов</td>
+          <td class="recharge-cell">Закопать на кладбище жуков на три ночи</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">10</td>
+          <td class="name-cell">Свет</td>
+          <td class="effect-cell">Заставляет [мощь] существ сделать спасбросок воли — в случае неудачи они окажутся ошеломлены. Либо создаёт свет с яркостью лампы на [сум] ходов</td>
+          <td class="recharge-cell">Ловить табличкой с заклинанием первый луч на рассвете и последний на закате в течение трёх дней</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">11</td>
+          <td class="name-cell">Невидимое кольцо</td>
+          <td class="effect-cell">Создаёт силовое поле в форме кольца с радиусом [мощь]x6 дюймов. Оно невидимое и недвижимое. Длится [мощь] ходов</td>
+          <td class="recharge-cell">Соорудить железное кольцо того же размера, что и при последнем чтении заклинания. Пропустить сквозь него заклинание и расплавить кольцо</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">12</td>
+          <td class="name-cell">Взлом</td>
+          <td class="effect-cell">Открывает дверь или ящик, как если бы мышь сделала успешный спасбросок силы со значением 10+[мощь]х4</td>
+          <td class="recharge-cell">Положить заклинание в закрытую коробку, поместить её внутрь закрытой коробки, последнюю также поместить в закрытую коробку. Оставить на три дня</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">13</td>
+          <td class="name-cell">Скольжение</td>
+          <td class="effect-cell">Покрывает пространство [мощь]х6 дюймов скользкой горючей жидкостью. Существа в этой области должны сделать спасбросок ловкости, чтобы не упасть</td>
+          <td class="recharge-cell">Целиком покрыть заклинание животным жиром. Оставить, пока тот не сгниёт полностью</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">14</td>
+          <td class="name-cell">Рост</td>
+          <td class="effect-cell">Увеличивает существо в [мощь]+1 раз относительно его изначального размера на 1 ход</td>
+          <td class="recharge-cell">Оставить на верхней ветке высокого дерева на три дня</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">15</td>
+          <td class="name-cell">Невидимость</td>
+          <td class="effect-cell">Делает существо невидимым на [мощь] ходов. Любое перемещение снижает длительность на 1 ход</td>
+          <td class="recharge-cell">Провести день, ни разу не открыв глаз и удерживая заклинание</td>
+        </tr>
+        <tr>
+          <td class="roll-cell">16</td>
+          <td class="name-cell">Кошачья мята</td>
+          <td class="effect-cell">Превращает объект в приманку, перед которой не устоит ни одна кошка. Длится [мощь] ходов</td>
+          <td class="recharge-cell">Подарить кошке то, чего она по-настоящему хочет</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Magic Rules Modal -->
+<div class="magic-modal" id="magicModal" onclick="if(event.target===this) closeMagic()">
+  <div class="magic-content">
+    <button class="magic-close" onclick="closeMagic()">&times;</button>
+    <h2 class="magic-title">✨ Правила Магии</h2>
+    
+    <div class="magic-section">
+      <h3>Заклинания</h3>
+      <div class="magic-text">
+        <p>Заклинания — это живые духи, которые заперты в обсидиановых табличках высеченными на них рунами. Обычно их можно отыскать в далёких и опасных местах. Создание новых заклинаний — давно забытое искусство. Сейчас им владеют мудрейшие из волшебников, но они рьяно хранят свои секреты.</p>
+      </div>
+    </div>
+    
+    <div class="magic-section">
+      <h3>Продажа заклинаний</h3>
+      <div class="magic-text">
+        <p>Полностью заряженную табличку с заклинанием обычно можно продать в поселении за <strong>d6×100 з</strong>. Исчерпанная табличка с заклинанием стоит вполовину меньше.</p>
+      </div>
+    </div>
+    
+    <div class="magic-section">
+      <h3>Чтение заклинания</h3>
+      <div class="magic-text">
+        <p>Чтобы сотворить заклинание, твоя мышь должна взять табличку в лапы и громко его прочитать. Когда это происходит, реши, какова будет мощь заклинания. Её величина ограничена оставшимися точками применения.</p>
+        <p>Брось столько d6, сколько мощи вложено в заклинание. За каждый кубик, на котором выпал результат 4, 5 или 6, отметь одно применение заклинания.</p>
+        <p>У каждого заклинания есть эффект, который зависит от количества брошенных кубиков — их мы обозначаем как <strong>[мощь]</strong> — и суммы <strong>[сум]</strong> выпавших на них результатов.</p>
+      </div>
+    </div>
+    
+    <div class="magic-section">
+      <h3>Перезарядка заклинания</h3>
+      <div class="magic-text">
+        <p>Когда у заклинания отмечены все точки применения, оно исчерпано — и его больше нельзя сотворить. У каждого заклинания свои требования к перезарядке. Выполнив их, мышь задобрит дух в заклинании и очистит все точки применения.</p>
+      </div>
+    </div>
+    
+    <div class="magic-section">
+      <h3>Ошибки в заклинаниях</h3>
+      <div class="magic-text">
+        <p>Если при чтении заклинания на кубиках выпадает одна или несколько 6, заклинатель получает <strong>d6 урона</strong> за каждую выпавшую 6, который влияет на волю. Затем он делает спасбросок воли. Если проверка оказалась неудачной, то заклинатель получает карточку состояния «Опустошён».</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Status Modal -->
+<div class="status-modal" id="statusModal" onclick="if(event.target===this) closeStatus()">
+  <div class="status-content">
+    <button class="status-close" onclick="closeStatus()">&times;</button>
+    <h2 class="status-title">👹 Состояния</h2>
+    <div class="status-grid" id="statusGrid"></div>
+  </div>
+</div>
+
+<!-- Select Item Modal (for removing items) -->
+<div class="select-modal" id="selectModal">
+  <div class="select-content">
+    <h2 class="select-title">Мешок полон! Удалить что-то?</h2>
+    <div class="select-list" id="selectList"></div>
+    <div class="select-buttons">
+      <button class="select-btn" onclick="closeSelectModal()">Отмена</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
