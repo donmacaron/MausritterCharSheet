@@ -1,0 +1,36 @@
+version: "3.9"
+
+services:
+  mausritterapp:
+    build:
+      context: https://github.com/donmacaron/MausritterCharSheet.git
+
+    container_name: mausritterapp
+    restart: unless-stopped
+
+    working_dir: /app
+
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - PYTHONUNBUFFERED=1
+
+    command: flask run --host=0.0.0.0 --port=5000
+
+    labels:
+      - traefik.enable=true
+
+      - traefik.http.routers.mausritter.rule=Host(`mausritter.donmacaron.net`)
+      - traefik.http.routers.mausritter.entrypoints=webs
+      - traefik.http.routers.mausritter.tls.certresolver=myresolver
+      - traefik.http.routers.mausritter.service=mausritter-service
+
+      - traefik.http.services.mausritter-service.loadbalancer.server.port=5000
+
+    networks:
+      - traefik_default
+
+
+networks:
+  traefik_default:
+    external: true
