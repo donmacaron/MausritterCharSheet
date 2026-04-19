@@ -90,6 +90,7 @@ body{font-family:var(--body);background:var(--bg);padding:14px;min-height:100vh}
 .card.armour{background:#c8c0b0}
 .card.weapon{background:#b8c0aa}
 .card.status{background:#d8a5a5;border-color:#8b4545;color:#4a2222;font-weight:bold}
+.card.spell{background:#a5c8d8;border-color:#458b8b;color:#22424a;font-weight:bold}
 .bag-slot .card{min-height:82px;padding:6px}
 .bag-slot .card.empty{min-height:82px}
 body.edit-mode .card:not(.empty){border-color:var(--accent);cursor:default}
@@ -105,6 +106,9 @@ body.edit-mode .card:not(.empty):active{filter:none}
 .del-btn{position:absolute;top:3px;right:4px;background:none;border:none;
   cursor:pointer;font-size:1.2rem;line-height:1;color:#8a3010;padding:0 3px;z-index:2}
 .del-btn:hover{color:#cc2200}
+.info-btn{background:none;border:none;cursor:pointer;font-size:1rem;
+  color:#5a7a9a;padding:0 4px;line-height:1}
+.info-btn:hover{color:#3a5a7a}
 .move-btn{background:none;border:1px solid #6a5040;padding:2px 6px;
   cursor:pointer;font-size:.75rem;color:#6a5040;border-radius:2px}
 .move-btn:hover{background:#7a6050;color:#f5ead0}
@@ -145,6 +149,11 @@ body.edit-mode .card:not(.empty):active{filter:none}
   background:#ede8df;font-family:var(--body);font-size:.95rem;
   color:var(--brd);outline:none}
 .form-row input[type=text]:focus{background:#fff;border-color:var(--accent)}
+.form-row textarea{
+  width:100%;padding:7px 9px;border:1.5px solid var(--brd);
+  background:#ede8df;font-family:var(--body);font-size:.95rem;
+  color:var(--brd);outline:none;resize:vertical}
+.form-row textarea:focus{background:#fff;border-color:var(--accent)}
 .seg{display:flex;gap:0}
 .seg button{
   flex:1;padding:7px 4px;border:1.5px solid var(--brd);background:#ede8df;
@@ -326,6 +335,24 @@ var STATUSES = [
   {id: "depleted", name: "Опустошён", effect: "Помеха к спасброскам воли.", cure: "Полный отдых"}
 ];
 
+var SPELLS = [
+  {name: "Огненный шар", effect: "Стреляет огненным шаром на расстояние до 24 дюймов. Наносит [сум] + [мощь] урона всем существам в радиусе 6 дюймов", recharge: "Закаливать в самом сердце бушующего пламени три дня и три ночи"},
+  {name: "Исцеление", effect: "Лечит [сум] урона по силе и убирает карточку состояния «Ранен» с существа", recharge: "Нанести себе порез и окропить табличку кровью. Заклинатель получает d6 урона, который снижает значение силы, минуя общую защиту"},
+  {name: "Магический снаряд", effect: "Наносит [сум] + [мощь] урона существу в пределах видимости", recharge: "Бросить табличку с заклинанием с высоты не менее 30 футов и коснуться её в течение одного хода"},
+  {name: "Страх", effect: "[мощь] существ получают состояние «Испуган»", recharge: "Получить состояние «Испуган» от враждебного существа, удерживая заклинание в лапах"},
+  {name: "Тьма", effect: "Создаёт сферу абсолютной тьмы диаметром [сум]х2 дюйма на [мощь] ходов", recharge: "На три дня оставить непокрытым в месте, куда не попадает свет"},
+  {name: "Восстановление", effect: "Убирает карточку состояния «Изнурён» или «Испуган» с [мощь]+1 существ", recharge: "Закопать на три дня на спокойном лугу или берегу реки"},
+  {name: "Открытое сердце", effect: "Делает намерения заклинателя понятными для [мощь] существ других видов на [мощь] ходов", recharge: "Добровольно подарить существу другого вида"},
+  {name: "Жук-призрак", effect: "Создаёт призрачного жука, который может нести 6 ячеек снаряжения на [мощь]х6 ходов", recharge: "Закопать на кладбище жуков на три ночи"},
+  {name: "Свет", effect: "Заставляет [мощь] существ сделать спасбросок воли — в случае неудачи они окажутся ошеломлены. Либо создаёт свет с яркостью лампы на [сум] ходов", recharge: "Ловить табличкой с заклинанием первый луч на рассвете и последний на закате в течение трёх дней"},
+  {name: "Невидимое кольцо", effect: "Создаёт силовое поле в форме кольца с радиусом [мощь]x6 дюймов. Оно невидимое и недвижимое. Длится [мощь] ходов", recharge: "Соорудить железное кольцо того же размера, что и при последнем чтении заклинания. Пропустить сквозь него заклинание и расплавить кольцо"},
+  {name: "Взлом", effect: "Открывает дверь или ящик, как если бы мышь сделала успешный спасбросок силы со значением 10+[мощь]х4", recharge: "Положить заклинание в закрытую коробку, поместить её внутрь закрытой коробки, последнюю также поместить в закрытую коробку. Оставить на три дня"},
+  {name: "Скольжение", effect: "Покрывает пространство [мощь]х6 дюймов скользкой горючей жидкостью. Существа в этой области должны сделать спасбросок ловкости, чтобы не упасть", recharge: "Целиком покрыть заклинание животным жиром. Оставить, пока тот не сгниёт полностью"},
+  {name: "Рост", effect: "Увеличивает существо в [мощь]+1 раз относительно его изначального размера на 1 ход", recharge: "Оставить на верхней ветке высокого дерева на три дня"},
+  {name: "Невидимость", effect: "Делает существо невидимым на [мощь] ходов. Любое перемещение снижает длительность на 1 ход", recharge: "Провести день, ни разу не открыв глаз и удерживая заклинание"},
+  {name: "Кошачья мята", effect: "Превращает объект в приманку, перед которой не устоит ни одна кошка. Длится [мощь] ходов", recharge: "Подарить кошке то, чего она по-настоящему хочет"}
+];
+
 var EQUIP_IDS    = ["eq_main","eq_off","eq_arm1","eq_arm2"];
 var EQUIP_LABELS = ["Осн. лапа","Вторая лапа","Броня","Броня"];
 
@@ -390,15 +417,42 @@ function cardHTML(id, small) {
     if (editMode) {
       return '<div class="' + cls + '" data-id="' + id + '">'
         + '<button class="del-btn" data-del="' + id + '" title="Удалить">&times;</button>'
-        + '<div style="padding:8px;text-align:center">'
-        + '<div class="' + nc + '">' + esc(item.name || "") + '</div>'
-        + '</div>'
+        + '<div><div class="nrow">'
+        + '<input class="name-input" type="text" value="' + esc(item.name || "") + '" data-nameid="' + id + '">'
+        + '</div></div>'
         + '</div>';
     }
     return '<div class="' + cls + '" data-id="' + id + '">'
-      + '<div style="padding:8px;text-align:center">'
+      + '<div><div class="nrow">'
       + '<div class="' + nc + '">' + esc(item.name || "") + '</div>'
-      + '<button class="del-btn" data-del="' + id + '" title="Удалить" style="font-size:0.8rem;margin-top:4px">&times;</button>'
+      + '</div>'
+      + '<div class="' + uc + '" id="u_' + id + '">' + dotsStr(usage[id]||0) + '</div>'
+      + '<div style="text-align:center;margin-top:6px">'
+      + '<button class="info-btn" onclick="event.stopPropagation(); showStatusDetails(\'' + (item.id || '') + '\');" title="Подробнее" style="border:1px solid #5a7a9a;padding:3px 8px;border-radius:3px">ℹ</button>'
+      + '</div>'
+      + '</div>'
+      + '</div>';
+  }
+
+  // Обработка заклинаний
+  if (item.type === "spell") {
+    var cls = "card spell";
+    if (editMode) {
+      return '<div class="' + cls + '" data-id="' + id + '">'
+        + '<button class="del-btn" data-del="' + id + '" title="Удалить">&times;</button>'
+        + '<div><div class="nrow">'
+        + '<input class="name-input" type="text" value="' + esc(item.name || "") + '" data-nameid="' + id + '">'
+        + '</div></div>'
+        + '</div>';
+    }
+    return '<div class="' + cls + '" data-id="' + id + '">'
+      + '<div><div class="nrow">'
+      + '<div class="' + nc + '">' + esc(item.name || "") + '</div>'
+      + '</div>'
+      + '<div class="' + uc + '" id="u_' + id + '">' + dotsStr(usage[id]||0) + '</div>'
+      + '<div style="text-align:center;margin-top:6px">'
+      + '<button class="info-btn" onclick="event.stopPropagation(); showSpellDetails(\'' + (item.name || '').replace(/'/g, "\\'") + '\');" title="Подробнее" style="border:1px solid #5a7a9a;padding:3px 8px;border-radius:3px">ℹ</button>'
+      + '</div>'
       + '</div>'
       + '</div>';
   }
@@ -853,22 +907,32 @@ document.getElementById("fileIn").addEventListener("change", function(e) {
 });
 
 // ── V5: Add Card Modal ───────────────────────────────────────────────────
-var _mType   = "item";
-var _mWeight = "";
-var _mDice   = "d6";
-var _mDef    = 1;
+var _mType    = "item";
+var _mWeight  = "";
+var _mDice    = "d6";
+var _mDef     = 1;
+var _mEffect  = "";
+var _mCure    = "";
+var _mRecharge = "";
 
 function openModal() {
   // reset form
-  _mType = "item"; _mWeight = ""; _mDice = "d6"; _mDef = 1;
+  _mType = "item"; _mWeight = ""; _mDice = "d6"; _mDef = 1; _mEffect = ""; _mCure = ""; _mRecharge = "";
   selBtn("segType",   "item");
   selBtn("segWeight", "");
   selBtn("segDice",   "d6");
   selBtn("segDef",    "1");
   document.getElementById("cardName").value = "";
+  document.getElementById("cardEffect").value = "";
+  document.getElementById("cardCure").value = "";
+  document.getElementById("cardRecharge").value = "";
   document.getElementById("modalErr").textContent = "";
   document.getElementById("diceRow").style.display = "none";
   document.getElementById("defRow").style.display  = "none";
+  document.getElementById("statusRow").style.display = "none";
+  document.getElementById("statusCureRow").style.display = "none";
+  document.getElementById("spellRow").style.display = "none";
+  document.getElementById("spellRechargeRow").style.display = "none";
   document.getElementById("modalOverlay").classList.add("open");
   setTimeout(function(){ document.getElementById("cardName").focus(); }, 80);
 }
@@ -893,6 +957,10 @@ function pick(kind, btn) {
     selBtn("segType", val);
     document.getElementById("diceRow").style.display = (val === "weapon") ? "" : "none";
     document.getElementById("defRow").style.display  = (val === "armour") ? "" : "none";
+    document.getElementById("statusRow").style.display = (val === "status") ? "" : "none";
+    document.getElementById("statusCureRow").style.display = (val === "status") ? "" : "none";
+    document.getElementById("spellRow").style.display = (val === "spell") ? "" : "none";
+    document.getElementById("spellRechargeRow").style.display = (val === "spell") ? "" : "none";
   } else if (kind === "weight") {
     _mWeight = val;
     selBtn("segWeight", val);
@@ -917,7 +985,10 @@ function addCard() {
     type:   _mType,
     weight: _mWeight || null,
     dice:   (_mType === "weapon") ? _mDice : null,
-    def:    (_mType === "armour") ? _mDef  : null
+    def:    (_mType === "armour") ? _mDef  : null,
+    effect: (_mType === "status" || _mType === "spell") ? document.getElementById("cardEffect").value.trim() : null,
+    cure:   (_mType === "status") ? document.getElementById("cardCure").value.trim() : null,
+    recharge: (_mType === "spell") ? document.getElementById("cardRecharge").value.trim() : null
   };
 
   // Find first empty bag slot
@@ -982,6 +1053,63 @@ function openMagic() {
 
 function closeMagic() {
   document.getElementById("magicModal").classList.remove("open");
+}
+
+function showStatusDetails(statusId) {
+  var status = STATUSES.find(function(s){ return s.id === statusId; });
+  if (!status) return;
+  
+  document.getElementById("detailsTitle").textContent = status.name;
+  var content = "<div style='margin:16px 0'>";
+  if (status.effect) {
+    content += "<div style='margin-bottom:12px'><strong>Эффект:</strong><br>" + esc(status.effect) + "</div>";
+  }
+  content += "<div><strong>Избавиться:</strong><br>" + esc(status.cure) + "</div>";
+  content += "</div>";
+  document.getElementById("detailsContent").innerHTML = content;
+  document.getElementById("detailsModal").classList.add("open");
+}
+
+function showSpellDetails(spellName) {
+  var spell = SPELLS.find(function(s){ return s.name === spellName; });
+  if (!spell) return;
+  
+  document.getElementById("detailsTitle").textContent = spell.name;
+  var content = "<div style='margin:16px 0'>";
+  content += "<div style='margin-bottom:12px'><strong>Эффект:</strong><br>" + esc(spell.effect) + "</div>";
+  content += "<div><strong>Перезарядка:</strong><br>" + esc(spell.recharge) + "</div>";
+  content += "</div>";
+  document.getElementById("detailsContent").innerHTML = content;
+  document.getElementById("detailsModal").classList.add("open");
+}
+
+function closeDetails() {
+  document.getElementById("detailsModal").classList.remove("open");
+}
+
+function addSpellToInventory(spellName) {
+  // Проверяем свободные слоты в мешке
+  var freeBagSlot = null;
+  for (var i = 0; i < 9; i++) {
+    if (!cardMap["b" + i]) {
+      freeBagSlot = i;
+      break;
+    }
+  }
+  
+  if (freeBagSlot !== null) {
+    // Есть свободное место - добавляем заклинание
+    var spellCard = {type: "spell", name: spellName};
+    cardMap["b" + freeBagSlot] = spellCard;
+    usage["b" + freeBagSlot] = 0;
+    renderBag();
+    closeSpells();
+  } else {
+    // Нет свободного места - показываем ошибку
+    var errDiv = document.getElementById("errorOverlay");
+    document.getElementById("errorMsg").textContent = "Мешок полон! Удалите что-нибудь перед добавлением.";
+    errDiv.classList.add("open");
+  }
 }
 
 function openStatus() {
@@ -1112,6 +1240,8 @@ if (menuRollBtn) menuRollBtn.classList.add('unlock-3');
         <button class="sel" data-val="item"   onclick="pick('type',this)">Предмет</button>
         <button          data-val="weapon" onclick="pick('type',this)">Оружие</button>
         <button          data-val="armour" onclick="pick('type',this)">Броня</button>
+        <button          data-val="status" onclick="pick('type',this)">Состояние</button>
+        <button          data-val="spell"  onclick="pick('type',this)">Заклинание</button>
       </div>
     </div>
 
@@ -1149,6 +1279,26 @@ if (menuRollBtn) menuRollBtn.classList.add('unlock-3');
       </div>
     </div>
 
+    <div class="form-row" id="statusRow" style="display:none">
+      <label>Эффект состояния</label>
+      <textarea id="cardEffect" placeholder="Описание эффекта (например: Помеха к спасброскам силы)" rows="2"></textarea>
+    </div>
+
+    <div class="form-row" id="statusCureRow" style="display:none">
+      <label>Способ избавления</label>
+      <textarea id="cardCure" placeholder="Способ избавиться от этого состояния" rows="2"></textarea>
+    </div>
+
+    <div class="form-row" id="spellRow" style="display:none">
+      <label>Эффект заклинания</label>
+      <textarea id="cardEffect" placeholder="Описание эффекта заклинания" rows="2"></textarea>
+    </div>
+
+    <div class="form-row" id="spellRechargeRow" style="display:none">
+      <label>Условие перезарядки</label>
+      <textarea id="cardRecharge" placeholder="Как перезарядить это заклинание" rows="2"></textarea>
+    </div>
+
     <div class="modal-err" id="modalErr"></div>
     <button class="modal-add-btn" onclick="addCard()">Добавить</button>
   </div>
@@ -1179,91 +1329,91 @@ if (menuRollBtn) menuRollBtn.classList.add('unlock-3');
         </tr>
       </thead>
       <tbody>
-        <tr>
+        <tr onclick="addSpellToInventory('Огненный шар')">
           <td class="roll-cell">2</td>
           <td class="name-cell">Огненный шар</td>
           <td class="effect-cell">Стреляет огненным шаром на расстояние до 24 дюймов. Наносит [сум] + [мощь] урона всем существам в радиусе 6 дюймов</td>
           <td class="recharge-cell">Закаливать в самом сердце бушующего пламени три дня и три ночи</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Исцеление')">
           <td class="roll-cell">3</td>
           <td class="name-cell">Исцеление</td>
           <td class="effect-cell">Лечит [сум] урона по силе и убирает карточку состояния «Ранен» с существа</td>
           <td class="recharge-cell">Нанести себе порез и окропить табличку кровью. Заклинатель получает d6 урона, который снижает значение силы, минуя общую защиту</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Магический снаряд')">
           <td class="roll-cell">4</td>
           <td class="name-cell">Магический снаряд</td>
           <td class="effect-cell">Наносит [сум] + [мощь] урона существу в пределах видимости</td>
           <td class="recharge-cell">Бросить табличку с заклинанием с высоты не менее 30 футов и коснуться её в течение одного хода</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Страх')">
           <td class="roll-cell">5</td>
           <td class="name-cell">Страх</td>
           <td class="effect-cell">[мощь] существ получают состояние «Испуган»</td>
           <td class="recharge-cell">Получить состояние «Испуган» от враждебного существа, удерживая заклинание в лапах</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Тьма')">
           <td class="roll-cell">6</td>
           <td class="name-cell">Тьма</td>
           <td class="effect-cell">Создаёт сферу абсолютной тьмы диаметром [сум]х2 дюйма на [мощь] ходов</td>
           <td class="recharge-cell">На три дня оставить непокрытым в месте, куда не попадает свет</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Восстановление')">
           <td class="roll-cell">7</td>
           <td class="name-cell">Восстановление</td>
           <td class="effect-cell">Убирает карточку состояния «Изнурён» или «Испуган» с [мощь]+1 существ</td>
           <td class="recharge-cell">Закопать на три дня на спокойном лугу или берегу реки</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Открытое сердце')">
           <td class="roll-cell">8</td>
           <td class="name-cell">Открытое сердце</td>
           <td class="effect-cell">Делает намерения заклинателя понятными для [мощь] существ других видов на [мощь] ходов</td>
           <td class="recharge-cell">Добровольно подарить существу другого вида</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Жук-призрак')">
           <td class="roll-cell">9</td>
           <td class="name-cell">Жук-призрак</td>
           <td class="effect-cell">Создаёт призрачного жука, который может нести 6 ячеек снаряжения на [мощь]х6 ходов</td>
           <td class="recharge-cell">Закопать на кладбище жуков на три ночи</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Свет')">
           <td class="roll-cell">10</td>
           <td class="name-cell">Свет</td>
           <td class="effect-cell">Заставляет [мощь] существ сделать спасбросок воли — в случае неудачи они окажутся ошеломлены. Либо создаёт свет с яркостью лампы на [сум] ходов</td>
           <td class="recharge-cell">Ловить табличкой с заклинанием первый луч на рассвете и последний на закате в течение трёх дней</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Невидимое кольцо')">
           <td class="roll-cell">11</td>
           <td class="name-cell">Невидимое кольцо</td>
           <td class="effect-cell">Создаёт силовое поле в форме кольца с радиусом [мощь]x6 дюймов. Оно невидимое и недвижимое. Длится [мощь] ходов</td>
           <td class="recharge-cell">Соорудить железное кольцо того же размера, что и при последнем чтении заклинания. Пропустить сквозь него заклинание и расплавить кольцо</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Взлом')">
           <td class="roll-cell">12</td>
           <td class="name-cell">Взлом</td>
           <td class="effect-cell">Открывает дверь или ящик, как если бы мышь сделала успешный спасбросок силы со значением 10+[мощь]х4</td>
           <td class="recharge-cell">Положить заклинание в закрытую коробку, поместить её внутрь закрытой коробки, последнюю также поместить в закрытую коробку. Оставить на три дня</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Скольжение')">
           <td class="roll-cell">13</td>
           <td class="name-cell">Скольжение</td>
           <td class="effect-cell">Покрывает пространство [мощь]х6 дюймов скользкой горючей жидкостью. Существа в этой области должны сделать спасбросок ловкости, чтобы не упасть</td>
           <td class="recharge-cell">Целиком покрыть заклинание животным жиром. Оставить, пока тот не сгниёт полностью</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Рост')">
           <td class="roll-cell">14</td>
           <td class="name-cell">Рост</td>
           <td class="effect-cell">Увеличивает существо в [мощь]+1 раз относительно его изначального размера на 1 ход</td>
           <td class="recharge-cell">Оставить на верхней ветке высокого дерева на три дня</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Невидимость')">
           <td class="roll-cell">15</td>
           <td class="name-cell">Невидимость</td>
           <td class="effect-cell">Делает существо невидимым на [мощь] ходов. Любое перемещение снижает длительность на 1 ход</td>
           <td class="recharge-cell">Провести день, ни разу не открыв глаз и удерживая заклинание</td>
         </tr>
-        <tr>
+        <tr onclick="addSpellToInventory('Кошачья мята')">
           <td class="roll-cell">16</td>
           <td class="name-cell">Кошачья мята</td>
           <td class="effect-cell">Превращает объект в приманку, перед которой не устоит ни одна кошка. Длится [мощь] ходов</td>
@@ -1316,6 +1466,16 @@ if (menuRollBtn) menuRollBtn.classList.add('unlock-3');
         <p>Если при чтении заклинания на кубиках выпадает одна или несколько 6, заклинатель получает <strong>d6 урона</strong> за каждую выпавшую 6, который влияет на волю. Затем он делает спасбросок воли. Если проверка оказалась неудачной, то заклинатель получает карточку состояния «Опустошён».</p>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- Details Modal -->
+<div class="modal-overlay" id="detailsModal" onclick="if(event.target===this) closeDetails()">
+  <div class="modal" style="max-width:500px">
+    <button class="modal-close" onclick="closeDetails()">&times;</button>
+    <h3 id="detailsTitle" style="margin-top:0">Подробно</h3>
+    <div id="detailsContent" style="font-size:0.95rem;line-height:1.6;color:var(--text)"></div>
+    <button class="modal-add-btn" onclick="closeDetails()" style="margin-top:16px;width:100%">Закрыть</button>
   </div>
 </div>
 
