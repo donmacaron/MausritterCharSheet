@@ -5,6 +5,23 @@
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--body);background:var(--bg);padding:14px;min-height:100vh}
+.preloader{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at center, rgba(240,235,224,.98), rgba(214,207,196,.98));
+  z-index:1000;transition:opacity .35s ease, visibility .35s ease}
+.preloader.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+.preloader-dial{position:relative;width:130px;height:130px;border:2px solid rgba(46,34,24,.18);
+  border-radius:50%;box-shadow:inset 0 0 0 8px rgba(255,255,255,.25)}
+.preloader-dial::before{content:"";position:absolute;inset:12px;border:1px dashed rgba(46,34,24,.28);
+  border-radius:50%}
+.preloader-center{position:absolute;top:50%;left:50%;width:10px;height:10px;background:var(--brd);
+  border-radius:50%;transform:translate(-50%,-50%)}
+.preloader-orbit{position:absolute;inset:0;animation:preloader-orbit 1.8s linear infinite}
+.preloader-mouse{position:absolute;top:8px;left:50%;font-size:1.7rem;line-height:1;
+  transform:translateX(-50%) rotate(90deg);filter:drop-shadow(0 2px 2px rgba(46,34,24,.18))}
+@keyframes preloader-orbit{
+  from{transform:rotate(0deg)}
+  to{transform:rotate(360deg)}
+}
 .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:10px}
 .title{font-family:var(--gothic);font-size:1.9rem;line-height:1.15;flex:1}
 .btn-row{display:flex;gap:7px;flex-shrink:0;position:relative}
