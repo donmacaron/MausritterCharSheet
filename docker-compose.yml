@@ -27,6 +27,9 @@ services:
 
       - traefik.http.services.mausritter-service.loadbalancer.server.port=5000
 
+    volumes:
+      - mausritter_data:/app/data
+
     networks:
       - traefik_default
 
@@ -34,3 +37,6 @@ services:
 networks:
   traefik_default:
     external: true
+
+volumes:
+  mausritter_data:

@@ -23,7 +23,10 @@ from flask import (
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
-app.config["DATABASE"] = str(Path(app.root_path) / "mausritter.db")
+# Использовать /app/data для persisting данных при docker rebuild
+DATA_DIR = Path("/app/data") if os.path.exists("/app") else Path(app.root_path)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+app.config["DATABASE"] = str(DATA_DIR / "mausritter.db")
 app.config["SECRET_KEY"] = "mausritter-dev-secret-change-me"
 
 # Портреты: конфигурация
