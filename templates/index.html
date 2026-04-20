@@ -77,6 +77,11 @@ body{font-family:var(--body);background:var(--bg);padding:14px;min-height:100vh}
 .slot-lbl{font-size:.65rem;color:var(--muted);text-transform:uppercase;
   letter-spacing:.06em;margin-bottom:4px;text-align:center}
 .bag-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:18px}
+.endurance-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:16px 0}
+.endurance-slot .card{min-height:82px;padding:6px}
+.endurance-slot .card.empty{min-height:82px}
+.endurance-slot.disabled .card{opacity:0.3;cursor:default}
+.endurance-slot.disabled .card:active{filter:none}
 .card{background:var(--card);border:1.5px solid #7a6050;padding:8px;
   display:flex;flex-direction:column;justify-content:space-between;
   min-height:108px;position:relative;cursor:pointer;
@@ -88,9 +93,12 @@ body{font-family:var(--body);background:var(--bg);padding:14px;min-height:100vh}
 .card.spell{border-style:dashed;background:#bfaf9c}
 .card.hireling{background:#c0c8b0}
 .card.armour{background:#c8c0b0}
+.card.shield{background:#a5d8c8;border-color:#458b8b}
 .card.weapon{background:#b8c0aa}
+.card.ammo{background:#d4a574;border-color:#8b7355}
 .card.status{background:#d8a5a5;border-color:#8b4545;color:#4a2222;font-weight:bold}
 .card.spell{background:#a5c8d8;border-color:#458b8b;color:#22424a;font-weight:bold}
+.card.placeholder-linked{background:#b8c0aa;opacity:0.65;border-style:dashed;border-width:2px}
 .bag-slot .card{min-height:82px;padding:6px}
 .bag-slot .card.empty{min-height:82px}
 body.edit-mode .card:not(.empty){border-color:var(--accent);cursor:default}
@@ -98,8 +106,9 @@ body.edit-mode .card:not(.empty):active{filter:none}
 .nrow{display:flex;justify-content:space-between;align-items:flex-start;gap:3px}
 .iname{font-weight:bold;font-size:.82rem;line-height:1.25}
 .iname-sm{font-weight:bold;font-size:.72rem;line-height:1.2}
-.idice{border:1.5px solid #6a5040;padding:1px 4px;font-size:.65rem;white-space:nowrap;flex-shrink:0}
-.idef{border:1.5px solid #4a5838;padding:1px 5px;font-size:.65rem;white-space:nowrap;flex-shrink:0;background:rgba(72,88,56,.13);color:#2e3a20}
+.idice{padding:3px 8px;font-size:1.1rem;white-space:nowrap;flex-shrink:0;color:#2e3a20;font-weight:normal}
+.idef{padding:3px 8px;font-size:1.1rem;white-space:nowrap;flex-shrink:0;color:#2e3a20;font-weight:normal}
+.def{padding:3px 8px;font-size:1.1rem;white-space:nowrap;flex-shrink:0;color:#2e3a20;font-weight:normal}
 .uses{font-size:.95rem;letter-spacing:4px;margin:6px 0 2px;color:#3a2010}
 .uses-sm{font-size:.82rem;letter-spacing:3px;margin:4px 0 2px;color:#3a2010}
 .ifoot{font-size:.68rem;color:var(--muted);font-style:italic}
@@ -112,6 +121,9 @@ body.edit-mode .card:not(.empty):active{filter:none}
 .move-btn{background:none;border:1px solid #6a5040;padding:2px 6px;
   cursor:pointer;font-size:.75rem;color:#6a5040;border-radius:2px}
 .move-btn:hover{background:#7a6050;color:#f5ead0}
+.mode-btn{background:none;border:1px solid #5a7a9a;padding:2px 6px;
+  cursor:pointer;font-size:.75rem;color:#5a7a9a;border-radius:2px}
+.mode-btn:hover{background:#6a8aaa;color:#f5ead0}
 .name-input{font-family:var(--body);font-size:.78rem;font-weight:bold;
   background:rgba(255,255,255,.45);border:1px solid var(--accent);
   padding:2px 4px;color:var(--brd);outline:none;width:100%}
@@ -132,6 +144,9 @@ body.edit-mode .card:not(.empty):active{filter:none}
   display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);
   z-index:100;align-items:center;justify-content:center}
 .modal-overlay.open{display:flex}
+.modal-overlay#detailsModal {
+  z-index:102;
+}
 .modal{
   background:var(--bg);border:2px solid var(--brd);
   padding:22px 20px 18px;width:min(340px,92vw);
@@ -154,11 +169,11 @@ body.edit-mode .card:not(.empty):active{filter:none}
   background:#ede8df;font-family:var(--body);font-size:.95rem;
   color:var(--brd);outline:none;resize:vertical}
 .form-row textarea:focus{background:#fff;border-color:var(--accent)}
-.seg{display:flex;gap:0}
+.seg{display:flex;gap:0;flex-wrap:wrap}
 .seg button{
-  flex:1;padding:7px 4px;border:1.5px solid var(--brd);background:#ede8df;
-  cursor:pointer;font-family:var(--body);font-size:.82rem;
-  color:var(--brd);margin-left:-1px;transition:background .12s}
+  flex:1 1 auto;padding:7px 4px;border:1.5px solid var(--brd);background:#ede8df;
+  cursor:pointer;font-family:var(--body);font-size:.75rem;
+  color:var(--brd);margin-left:-1px;transition:background .12s;min-width:50px}
 .seg button:first-child{margin-left:0}
 .seg button.sel{background:var(--accent);color:#f5ead0;border-color:var(--accent);z-index:1}
 .modal-err{color:#8a2010;font-size:.82rem;margin-bottom:10px;min-height:1.1em}
@@ -282,6 +297,8 @@ body.edit-mode .card:not(.empty):active{filter:none}
   <button class="menu-btn roll-btn" id="rollBtn" onclick="rollNew()">Ещё раз</button>
   <button class="menu-btn" onclick="openSpells();toggleMenu()" title="Гримуар">📖 Гримуар</button>
   <button class="menu-btn" onclick="openMagic();toggleMenu()" title="Правила магии">✨ Магия</button>
+  <button class="menu-btn" onclick="openRest();toggleMenu()" title="Отдых">😴 Отдых</button>
+  <button class="menu-btn" onclick="openDevelopment();toggleMenu()" title="Развитие">⬆️ Развитие</button>
   <button class="menu-btn" onclick="openStatus();toggleMenu()" title="Состояния">👹 Состояния</button>
   <button class="menu-btn" onclick="saveChar();toggleMenu()" title="Сохранить">💾 Сохранить</button>
   <button class="menu-btn" onclick="document.getElementById('fileIn').click();toggleMenu()" title="Загрузить">📂 Загрузить</button>
@@ -326,6 +343,8 @@ var curChar  = null;
 var _tapLock = {};  // ghost-click guard: id → timestamp of last valid tap
 var rollClickCount = 0;  // для отслеживания нажатий на кнопку "Ещё раз"
 var selectedStatusToAdd = null;  // для отслеживания выбранного состояния
+var weaponMode = {};  // {eq_main: 1 или 2} - отслеживание, в скольких лапах оружие среднего веса
+var slotMultimap = {};  // отслеживание многоячеечных предметов (тяжелое оружие в мешке занимает 2 ячейки)
 
 var STATUSES = [
   {id: "exhausted", name: "Изнурён", effect: "", cure: "Длительный отдых"},
@@ -354,7 +373,7 @@ var SPELLS = [
 ];
 
 var EQUIP_IDS    = ["eq_main","eq_off","eq_arm1","eq_arm2"];
-var EQUIP_LABELS = ["Осн. лапа","Вторая лапа","Броня","Броня"];
+var EQUIP_LABELS = ["Осн. лапа","Вторая лапа","Броня","Аммуниция"];
 
 function initFromChar(c) {
   curChar = c;
@@ -367,10 +386,134 @@ function initFromChar(c) {
   };
   var bag = c.bag || [];
   for (var i = 0; i < 9; i++) cardMap["b" + i] = bag[i] || null;
+  // Инициализация слотов выдержки (максимум 6)
+  for (var i = 0; i < 6; i++) cardMap["en" + i] = null;
   usage = {};
   Object.keys(cardMap).forEach(function(id){ usage[id] = 0; });
-  statMax = {str: c.str_val, dex: c.dex_val, wil: c.wil_val, hp: c.hp};
-  statCur = {str: c.str_val, dex: c.dex_val, wil: c.wil_val, hp: c.hp};
+  
+  // Обработка тяжелого оружия в мешке — добавить placeholder для второй ячейки
+  for (var i = 0; i < 8; i++) {
+    var item = cardMap["b" + i];
+    if (item && item.type === "weapon" && item.weight === "тяжёлое") {
+      var nextSlot = "b" + (i + 1);
+      // Если следующая ячейка свободна, создать placeholder
+      if (!cardMap[nextSlot]) {
+        cardMap[nextSlot] = {placeholder: true, linkedTo: "b" + i};
+      }
+    } else if (item && item.type === "armour" && item.weight === "тяжёлое") {
+      var nextSlot = "b" + (i + 1);
+      // Тяжелая броня в мешке тоже займет две ячейки
+      if (!cardMap[nextSlot]) {
+        cardMap[nextSlot] = {placeholder: true, linkedTo: "b" + i};
+      }
+    }
+  }
+  
+  // Инициализация режима оружия
+  weaponMode = {};
+  if (cardMap.eq_main && cardMap.eq_main.type === "weapon") {
+    weaponMode.eq_main = (cardMap.eq_main.weight === "тяжёлое") ? 2 : 1;
+  }
+  
+  // Если тяжелое оружие в основной лапе и вторая лапа свободна, создать placeholder
+  if (cardMap.eq_main && cardMap.eq_main.type === "weapon" && cardMap.eq_main.weight === "тяжёлое") {
+    if (!cardMap.eq_off) {
+      cardMap.eq_off = {placeholder: true, linkedTo: "eq_main"};
+    }
+  }
+  
+  // Если тяжелая броня в первом слоте, создать placeholder во втором
+  if (cardMap.eq_arm1 && !cardMap.eq_arm1.armor_placeholder && cardMap.eq_arm1.weight === "тяжёлое") {
+    if (!cardMap.eq_arm2) {
+      cardMap.eq_arm2 = {armor_placeholder: true, linkedTo: "eq_arm1"};
+    }
+  }
+  
+  // Если "Щит и куртка" в броне, создать щит во вторую лапу если его там нет
+  if (cardMap.eq_arm1 && cardMap.eq_arm1.name === "Щит и куртка") {
+    // Если оружие в основной лапе, убрать его в мешок
+    if (cardMap["eq_main"] && cardMap["eq_main"].type === "weapon") {
+      var weapon = cardMap["eq_main"];
+      var freeSlot = null;
+      
+      // Если тяжелое оружие - ищем две подряд ячейки
+      if (weapon.weight === "тяжёлое") {
+        for (var i = 0; i < 8; i++) {
+          if (!cardMap["b" + i] && !cardMap["b" + (i + 1)]) {
+            freeSlot = "b" + i;
+            break;
+          }
+        }
+      } else {
+        // Обычное оружие - одна ячейка
+        for (var i = 0; i < 9; i++) {
+          if (!cardMap["b" + i]) {
+            freeSlot = "b" + i;
+            break;
+          }
+        }
+      }
+      
+      if (freeSlot) {
+        cardMap[freeSlot] = weapon;
+        usage[freeSlot] = usage["eq_main"] || 0;
+        
+        // Если тяжелое, создать плейсхолдер
+        if (weapon.weight === "тяжёлое") {
+          var nextSlot = "b" + (parseInt(freeSlot.substring(1)) + 1);
+          cardMap[nextSlot] = {placeholder: true, linkedTo: freeSlot};
+        }
+      }
+      
+      cardMap["eq_main"] = null;
+      delete usage["eq_main"];
+    }
+    
+    // Если оружие во второй лапе, убрать его в мешок
+    if (cardMap["eq_off"] && cardMap["eq_off"].type === "weapon") {
+      var weapon = cardMap["eq_off"];
+      var freeSlot = null;
+      
+      // Если тяжелое оружие - ищем две подряд ячейки
+      if (weapon.weight === "тяжёлое") {
+        for (var i = 0; i < 8; i++) {
+          if (!cardMap["b" + i] && !cardMap["b" + (i + 1)]) {
+            freeSlot = "b" + i;
+            break;
+          }
+        }
+      } else {
+        // Обычное оружие - одна ячейка
+        for (var i = 0; i < 9; i++) {
+          if (!cardMap["b" + i]) {
+            freeSlot = "b" + i;
+            break;
+          }
+        }
+      }
+      
+      if (freeSlot) {
+        cardMap[freeSlot] = weapon;
+        usage[freeSlot] = usage["eq_off"] || 0;
+        
+        // Если тяжелое, создать плейсхолдер
+        if (weapon.weight === "тяжёлое") {
+          var nextSlot = "b" + (parseInt(freeSlot.substring(1)) + 1);
+          cardMap[nextSlot] = {placeholder: true, linkedTo: freeSlot};
+        }
+      }
+      
+      cardMap["eq_off"] = null;
+      delete usage["eq_off"];
+    }
+    
+    // Экипировать щит во вторую лапу
+    cardMap.eq_off = {name: "Щит", def: 1, type: "shield"};
+    usage["eq_off"] = 0;
+  }
+  
+  statMax = {str: c.str_val, dex: c.dex_val, wil: c.wil_val, hp: c.hp, end: c.endurance_max || 0};
+  statCur = {str: c.str_val, dex: c.dex_val, wil: c.wil_val, hp: c.hp, end: 0};
 }
 
 function $t(id, v){ var e = document.getElementById(id); if (e) e.textContent = v; }
@@ -397,6 +540,8 @@ function dotsStr(n) {
 function footer(item) {
   if (!item) return "";
   if (item.type === "armour")   return "Броня";
+  if (item.type === "shield")   return "Щит";
+  if (item.type === "ammo")     return "Аммуниция";
   if (item.type === "spell")    return "Заклинание";
   if (item.type === "hireling") return "Наёмник";
   if (item.weight) return item.weight[0].toUpperCase() + item.weight.slice(1);
@@ -411,6 +556,73 @@ function cardHTML(id, small) {
   if (!item)
     return '<div class="card empty" data-id="' + id + '">&mdash;</div>';
 
+  // Обработка armor_placeholder для брони в двух слотах
+  if (item.armor_placeholder && item.linkedTo) {
+    var mainArmor = cardMap[item.linkedTo];
+    if (mainArmor) {
+      return '<div class="card armour placeholder-linked" data-id="' + id + '">'
+        + '<div style="padding:8px;text-align:center;opacity:0.6">'
+        + '<div class="' + nc + '">' + esc(mainArmor.name || "") + '</div>'
+        + '</div>'
+        + '</div>';
+    }
+  }
+
+  // Обработка placeholder для второй лапы (оружие в двух лапах)
+  if (item.placeholder && item.linkedTo) {
+    var mainWeapon = cardMap[item.linkedTo];
+    if (mainWeapon) {
+      return '<div class="card weapon placeholder-linked" data-id="' + id + '">'
+        + '<div style="padding:8px;text-align:center;opacity:0.6">'
+        + '<div class="' + nc + '">' + esc(mainWeapon.name || "") + '</div>'
+        + '</div>'
+        + '</div>';
+    }
+  }
+
+  // Обработка щитов
+  if (item.type === "shield") {
+    var isInBag = id.charAt(0) === 'b';
+    var isInHand = id === "eq_off";
+    var moveBtn = "";
+    if (isInBag) {
+      moveBtn = '<button class="move-btn" data-move="equip-shield" data-id="' + id + '" title="Надеть на руку">↑</button>';
+    } else if (isInHand) {
+      moveBtn = '<button class="move-btn" data-move="unequip-shield" data-id="' + id + '" title="Положить в мешок">↓</button>';
+    }
+    var def = getDef(item);
+    var dc = def > 0 ? '<div class="def" title="Броня">def ' + def + '</div>' : '';
+    return '<div class="card shield" data-id="' + id + '">'
+      + '<div><div class="nrow">'
+      + '<div class="' + nc + '">' + esc(item.name || "") + '</div>'
+      + dc
+      + '</div>'
+      + '<div class="' + uc + '" id="u_' + id + '">' + dotsStr(usage[id]||0) + '</div>'
+      + (moveBtn ? '<div style="text-align:center;margin-top:2px">' + moveBtn + '</div>' : '')
+      + '</div>'
+      + '</div>';
+  }
+
+  // Обработка аммуниции
+  if (item.type === "ammo") {
+    var isInBag = id.charAt(0) === 'b';
+    var isInArmorSlot = id === "eq_arm2";
+    var moveBtn = "";
+    if (isInBag) {
+      moveBtn = '<button class="move-btn" data-move="equip-ammo" data-id="' + id + '" title="Надеть">↑</button>';
+    } else if (isInArmorSlot) {
+      moveBtn = '<button class="move-btn" data-move="unequip-ammo" data-id="' + id + '" title="Положить в мешок">↓</button>';
+    }
+    return '<div class="card ammo" data-id="' + id + '">'
+      + '<div><div class="nrow">'
+      + '<div class="' + nc + '">' + esc(item.name || "") + '</div>'
+      + '</div>'
+      + '<div class="' + uc + '" id="u_' + id + '">' + dotsStr(usage[id]||0) + '</div>'
+      + (moveBtn ? '<div style="text-align:center;margin-top:2px">' + moveBtn + '</div>' : '')
+      + '</div>'
+      + '</div>';
+  }
+
   // Обработка состояний
   if (item.type === "status") {
     var cls = "card status";
@@ -422,12 +634,38 @@ function cardHTML(id, small) {
         + '</div></div>'
         + '</div>';
     }
+    
+    // Состояние в выдержке (en0-en5)
+    var isInEndurance = id.charAt(0) === 'e' && id.charAt(1) === 'n';
+    if (isInEndurance) {
+      var infoBtn = '<button class="info-btn" onclick="event.stopPropagation(); showStatusDetails(\'' + (item.id || '') + '\');" title="Подробнее" style="border:1px solid #5a7a9a;padding:3px 8px;border-radius:3px">ℹ</button>';
+      return '<div class="' + cls + '" data-id="' + id + '">'
+        + '<div><div class="nrow">'
+        + '<div class="' + nc + '">' + esc(item.name || "") + '</div>'
+        + '</div>'
+        + '<div style="text-align:center;margin-top:6px">'
+        + infoBtn
+        + '</div>'
+        + '</div>'
+        + '</div>';
+    }
+    
+    // Состояние в мешке (b0-b8) - можно отправить в выдержку
+    var isInBag = id.charAt(0) === 'b';
+    var moveBtn = "";
+    if (isInBag && !editMode) {
+      var hasActiveEnduranceSlot = (statCur.end || 0) > 0;
+      if (hasActiveEnduranceSlot) {
+        moveBtn = '<button class="move-btn" data-move="send-to-endurance" data-id="' + id + '" title="Отправить в выдержку">↑</button>';
+      }
+    }
+    
     return '<div class="' + cls + '" data-id="' + id + '">'
       + '<div><div class="nrow">'
       + '<div class="' + nc + '">' + esc(item.name || "") + '</div>'
       + '</div>'
-      + '<div class="' + uc + '" id="u_' + id + '">' + dotsStr(usage[id]||0) + '</div>'
       + '<div style="text-align:center;margin-top:6px">'
+      + (moveBtn ? moveBtn + ' ' : '')
       + '<button class="info-btn" onclick="event.stopPropagation(); showStatusDetails(\'' + (item.id || '') + '\');" title="Подробнее" style="border:1px solid #5a7a9a;padding:3px 8px;border-radius:3px">ℹ</button>'
       + '</div>'
       + '</div>'
@@ -480,6 +718,7 @@ function cardHTML(id, small) {
 
   // Кнопка переноса для оружия и брони
   var moveBtn = "";
+  var modeBtn = "";
   if (item.type === "weapon") {
     var isInBag = id.charAt(0) === 'b';
     var isInHand = id === "eq_main" || id === "eq_off";
@@ -487,6 +726,13 @@ function cardHTML(id, small) {
       moveBtn = '<button class="move-btn" data-move="equip-weapon" data-id="' + id + '" title="Взять в лапки">↑</button>';
     } else if (isInHand) {
       moveBtn = '<button class="move-btn" data-move="unequip-weapon" data-id="' + id + '" title="Положить в мешок">↓</button>';
+      
+      // Для среднего оружия в руках показываем переключатель режима
+      if (item.weight === "среднее") {
+        var hands = weaponMode[id] || 1;
+        var modeLabel = (hands === 1) ? "1 лапа" : "2 лапы";
+        modeBtn = '<button class="mode-btn" onclick="toggleWeaponMode(\'' + id + '\');" title="Переключить режим">' + modeLabel + '</button>';
+      }
     }
   } else if (item.type === "armour") {
     var isInBag = id.charAt(0) === 'b';
@@ -504,7 +750,7 @@ function cardHTML(id, small) {
     + dc
     + '</div>'
     + '<div class="' + uc + '" id="u_' + id + '">' + dotsStr(usage[id]||0) + '</div>'
-    + (moveBtn ? '<div style="text-align:center;margin-top:2px">' + moveBtn + '</div>' : '')
+    + (moveBtn || modeBtn ? '<div style="text-align:center;margin-top:2px;display:flex;gap:4px;justify-content:center">' + moveBtn + modeBtn + '</div>' : '')
     + '</div>'
     + '<div class="ifoot">' + ft + '</div>'
     + '</div>';
@@ -526,7 +772,25 @@ document.addEventListener("click", function(e) {
       handleEquipArmour(cardId);
     } else if (action === "unequip-armour") {
       handleUnequipArmour(cardId);
+    } else if (action === "equip-shield") {
+      handleEquipShield(cardId);
+    } else if (action === "unequip-shield") {
+      handleUnequipShield(cardId);
+    } else if (action === "equip-ammo") {
+      handleEquipAmmo(cardId);
+    } else if (action === "unequip-ammo") {
+      handleUnequipAmmo(cardId);
+    } else if (action === "send-to-endurance") {
+      handleSendToEndurance(cardId);
     }
+    return;
+  }
+  // Delete from endurance button
+  var delFromEndurance = e.target.closest("[data-del-from-endurance]");
+  if (delFromEndurance) {
+    e.stopPropagation();
+    var enduranceId = delFromEndurance.getAttribute("data-del-from-endurance");
+    handleDeleteFromEndurance(enduranceId);
     return;
   }
   // Delete button (must check before card tap)
@@ -541,6 +805,10 @@ document.addEventListener("click", function(e) {
   if (!editMode) {
     var card = e.target.closest("[data-id]");
     if (card && !card.classList.contains("empty")) {
+      // Не трекируем использование, если клик был на кнопке переключения режима или информации
+      if (e.target.closest(".mode-btn") || e.target.closest(".info-btn")) {
+        return;
+      }
       var id = card.getAttribute("data-id");
       // Guard against ghost-clicks (mobile fires touchend + synthetic click)
       var now = Date.now();
@@ -579,13 +847,17 @@ document.addEventListener("input", function(e) {
 
 // ── Render ────────────────────────────────────────────────────────────────
 function renderStats() {
-  var L = ["СИЛ","ЛОВ","ВОЛ","ОЗ"], K = ["str","dex","wil","hp"];
+  var L = ["СИЛ","ЛОВ","ВОЛ","ОЗ","ВЫД"], K = ["str","dex","wil","hp","end"];
   var h = '<div class="stat-headers"><div></div><div>Макс</div><div>Тек.</div></div>';
-  for (var i = 0; i < 4; i++) {
+  for (var i = 0; i < 5; i++) {
     var k = K[i], mx = statMax[k] || 0, cur = statCur[k] || 0;
+    var labelHtml = L[i];
+    if (!editMode && k === "end") {
+      labelHtml = '<button style="background:none;border:none;cursor:pointer;font-family:var(--gothic);font-size:1.35rem;color:var(--brd);padding:0" onclick="openEndurance()">' + L[i] + '</button>';
+    }
     if (editMode) {
       h += '<div class="stat-row">'
-        + '<div class="stat-label">' + L[i] + '</div>'
+        + '<div class="stat-label">' + labelHtml + '</div>'
         + '<div class="stat-val"><input class="stat-input" type="number" min="1" max="20"'
         + ' value="' + mx + '" data-key="' + k + '" data-which="max"></div>'
         + '<div class="stat-val"><input class="stat-input" type="number" min="0" max="20"'
@@ -593,7 +865,7 @@ function renderStats() {
         + '</div>';
     } else {
       h += '<div class="stat-row">'
-        + '<div class="stat-label">' + L[i] + '</div>'
+        + '<div class="stat-label">' + labelHtml + '</div>'
         + '<div class="stat-val">' + mx + '</div>'
         + '<div class="stat-val">' + cur + '</div>'
         + '</div>';
@@ -653,43 +925,131 @@ function showError(msg) {
 
 function handleEquipWeapon(bagId) {
   var item = cardMap[bagId];
-  if (!item) return;
+  if (!item || item.placeholder) return;
   
-  // Find free hand slot
-  var freeSlot = null;
-  if (!cardMap["eq_main"]) freeSlot = "eq_main";
-  else if (!cardMap["eq_off"]) freeSlot = "eq_off";
-  
-  if (!freeSlot) {
-    showError("Нет свободных лап! Положите оружие из лап в мешок.");
-    return;
+  // Тяжелое оружие требует две свободные лапы
+  if (item.weight === "тяжёлое") {
+    if (cardMap["eq_main"] || cardMap["eq_off"]) {
+      showError("Для тяжелого оружия нужны обе свободные лапы!");
+      return;
+    }
+    
+    // Движем оружие на основную лапу
+    cardMap["eq_main"] = item;
+    usage["eq_main"] = usage[bagId] || 0;
+    weaponMode["eq_main"] = 2;
+    
+    // Создаем placeholder на вторую лапу
+    cardMap["eq_off"] = {placeholder: true, linkedTo: "eq_main"};
+    
+    // Освобождаем мешок (удаляем обе ячейки)
+    var otherBagId = null;
+    if (bagId.charAt(0) === 'b') {
+      var bagIndex = parseInt(bagId.substring(1));
+      // Ищем связанный placeholder
+      for (var i = 0; i < 9; i++) {
+        var checkId = "b" + i;
+        if (cardMap[checkId] && cardMap[checkId].placeholder && cardMap[checkId].linkedTo === bagId) {
+          otherBagId = checkId;
+          break;
+        }
+      }
+    }
+    
+    cardMap[bagId] = null;
+    delete usage[bagId];
+    if (otherBagId) {
+      cardMap[otherBagId] = null;
+    }
+  } else {
+    // Среднее или легкое оружие - требует одна свободная лапа
+    var freeSlot = null;
+    if (!cardMap["eq_main"]) freeSlot = "eq_main";
+    else if (!cardMap["eq_off"]) freeSlot = "eq_off";
+    
+    if (!freeSlot) {
+      showError("Нет свободных лап! Положите оружие из лап в мешок.");
+      return;
+    }
+    
+    // Move weapon
+    cardMap[freeSlot] = item;
+    usage[freeSlot] = usage[bagId] || 0;
+    cardMap[bagId] = null;
+    delete usage[bagId];
+    
+    // Инициализировать режим оружия (среднее может быть 1 или 2 лапы)
+    weaponMode[freeSlot] = (item.weight === "среднее") ? 1 : 1;
   }
-  
-  // Move weapon
-  cardMap[freeSlot] = item;
-  usage[freeSlot] = usage[bagId] || 0;
-  cardMap[bagId] = null;
-  delete usage[bagId];
   
   renderBag();
   renderEquip();
 }
 
+function toggleWeaponMode(handId) {
+  var item = cardMap[handId];
+  if (!item || item.type !== "weapon") return;
+  
+  // Тяжелое оружие всегда в двух лапах, нельзя переключать
+  if (item.weight === "тяжёлое") return;
+  
+  // Среднее оружие может быть в 1 или 2 лапах
+  if (item.weight !== "среднее") return;
+  
+  weaponMode[handId] = (weaponMode[handId] === 1) ? 2 : 1;
+  
+  // Если переключаемся на 2 лапы, убедимся что вторая лапа свободна
+  if (weaponMode[handId] === 2) {
+    var otherHand = (handId === "eq_main") ? "eq_off" : "eq_main";
+    if (cardMap[otherHand]) {
+      showError("Вторая лапа занята! Положите оружие в мешок, чтобы взять предмет двумя лапами.");
+      weaponMode[handId] = 1;
+      return;
+    }
+    // Занимаем вторую лапу
+    cardMap[otherHand] = {placeholder: true, linkedTo: handId};
+  } else {
+    // Если переключаемся на 1 лапу, освобождаем вторую
+    var otherHand = (handId === "eq_main") ? "eq_off" : "eq_main";
+    if (cardMap[otherHand] && cardMap[otherHand].placeholder && cardMap[otherHand].linkedTo === handId) {
+      cardMap[otherHand] = null;
+    }
+  }
+  
+  renderEquip();
+}
+
 function handleUnequipWeapon(handId) {
   var item = cardMap[handId];
-  if (!item) return;
+  if (!item || item.placeholder) return;
   
-  // Find free bag slot
+  // Find free bag slot(s)
   var freeSlot = null;
-  for (var i = 0; i < 9; i++) {
-    if (!cardMap["b" + i]) {
-      freeSlot = "b" + i;
-      break;
+  
+  // Тяжелое оружие требует две свободные подряд ячейки в мешке
+  if (item.weight === "тяжёлое") {
+    for (var i = 0; i < 8; i++) {
+      if (!cardMap["b" + i] && !cardMap["b" + (i + 1)]) {
+        freeSlot = "b" + i;
+        break;
+      }
+    }
+  } else {
+    // Обычное оружие требует одну ячейку
+    for (var i = 0; i < 9; i++) {
+      if (!cardMap["b" + i]) {
+        freeSlot = "b" + i;
+        break;
+      }
     }
   }
   
   if (!freeSlot) {
-    showError("Нет места в мешке! Выбросьте что-нибудь, чтобы освободить место.");
+    if (item.weight === "тяжёлое") {
+      showError("Нет двух подряд свободных ячеек в мешке!");
+    } else {
+      showError("Нет места в мешке! Выбросьте что-нибудь, чтобы освободить место.");
+    }
     return;
   }
   
@@ -699,21 +1059,110 @@ function handleUnequipWeapon(handId) {
   cardMap[handId] = null;
   delete usage[handId];
   
+  // Если тяжелое оружие, создаем placeholder на вторую ячейку
+  if (item.weight === "тяжёлое") {
+    var nextSlot = "b" + (parseInt(freeSlot.substring(1)) + 1);
+    cardMap[nextSlot] = {placeholder: true, linkedTo: freeSlot};
+  }
+  
+  // Освобождаем вторую лапу, если оружие было в режиме двух лап
+  if (weaponMode[handId] === 2) {
+    var otherHand = (handId === "eq_main") ? "eq_off" : "eq_main";
+    if (cardMap[otherHand] && cardMap[otherHand].placeholder && cardMap[otherHand].linkedTo === handId) {
+      cardMap[otherHand] = null;
+    }
+    delete weaponMode[handId];
+  }
+  
   renderBag();
   renderEquip();
 }
 
 function handleEquipArmour(bagId) {
   var item = cardMap[bagId];
-  if (!item) return;
+  if (!item || item.placeholder) return;
   
-  // Find free armour slot
+  // Специальный случай: "Щит и куртка" - экипировать оба элемента
+  if (item.name === "Щит и куртка") {
+    // Проверить место для брони
+    if (cardMap["eq_arm1"]) {
+      showError("Слот для брони занят!");
+      return;
+    }
+    
+    // Сначала удалить щит из мешка если он есть
+    for (var i = 0; i < 9; i++) {
+      var bagItem = cardMap["b" + i];
+      if (bagItem && bagItem.type === "shield" && bagItem.name === "Щит") {
+        cardMap["b" + i] = null;
+        delete usage["b" + i];
+        break;
+      }
+    }
+    
+    // Если оружие во второй лапе, убрать его в мешок
+    if (cardMap["eq_off"] && cardMap["eq_off"].type === "weapon") {
+      var weapon = cardMap["eq_off"];
+      var freeSlot = null;
+      
+      if (weapon.weight === "тяжёлое") {
+        for (var i = 0; i < 8; i++) {
+          if (!cardMap["b" + i] && !cardMap["b" + (i + 1)]) {
+            freeSlot = "b" + i;
+            break;
+          }
+        }
+      } else {
+        for (var i = 0; i < 9; i++) {
+          if (!cardMap["b" + i]) {
+            freeSlot = "b" + i;
+            break;
+          }
+        }
+      }
+      
+      if (freeSlot) {
+        cardMap[freeSlot] = weapon;
+        usage[freeSlot] = usage["eq_off"] || 0;
+        if (weapon.weight === "тяжёлое") {
+          var nextSlot = "b" + (parseInt(freeSlot.substring(1)) + 1);
+          cardMap[nextSlot] = {placeholder: true, linkedTo: freeSlot};
+        }
+      }
+    }
+    
+    // Экипировать броню и щит
+    cardMap["eq_arm1"] = item;
+    usage["eq_arm1"] = usage[bagId] || 0;
+    cardMap["eq_off"] = {name: "Щит", def: 1, type: "shield"};
+    usage["eq_off"] = 0;
+    cardMap[bagId] = null;
+    delete usage[bagId];
+    
+    renderBag();
+    renderEquip();
+    return;
+  }
+  
+  // Find free armour slot(s)
   var freeSlot = null;
-  if (!cardMap["eq_arm1"]) freeSlot = "eq_arm1";
-  else if (!cardMap["eq_arm2"]) freeSlot = "eq_arm2";
+  if (item.weight === "тяжёлое") {
+    // Тяжелая броня требует оба слота
+    if (!cardMap["eq_arm1"] && !cardMap["eq_arm2"]) {
+      freeSlot = "eq_arm1";
+    }
+  } else {
+    // Обычная броня - один слот
+    if (!cardMap["eq_arm1"]) freeSlot = "eq_arm1";
+    else if (!cardMap["eq_arm2"]) freeSlot = "eq_arm2";
+  }
   
   if (!freeSlot) {
-    showError("Нет свободных мест для брони! Снимите броню, чтобы надеть новую.");
+    if (item.weight === "тяжёлое") {
+      showError("Оба слота брони заняты! Снимите броню, чтобы надеть тяжелую.");
+    } else {
+      showError("Нет свободных мест для брони! Снимите броню, чтобы надеть новую.");
+    }
     return;
   }
   
@@ -723,14 +1172,208 @@ function handleEquipArmour(bagId) {
   cardMap[bagId] = null;
   delete usage[bagId];
   
+  // Если тяжелая броня, создать placeholder на второй слот
+  if (item.weight === "тяжёлое") {
+    cardMap["eq_arm2"] = {armor_placeholder: true, linkedTo: "eq_arm1"};
+    // Очистить плейсхолдер на вторую ячейку в мешке если броня была там
+    var nextBagSlot = "b" + (parseInt(bagId.substring(1)) + 1);
+    if (cardMap[nextBagSlot] && cardMap[nextBagSlot].placeholder && cardMap[nextBagSlot].linkedTo === bagId) {
+      cardMap[nextBagSlot] = null;
+    }
+  }
+  
   renderBag();
   renderEquip();
 }
 
 function handleUnequipArmour(armourId) {
   var item = cardMap[armourId];
-  if (!item) return;
+  if (!item || item.armor_placeholder) return;
   
+  // Специальный случай: "Щит и куртка" - снять обе части
+  if (item.name === "Щит и куртка") {
+    // Найти место для брони
+    var armourSlot = null;
+    for (var i = 0; i < 9; i++) {
+      if (!cardMap["b" + i]) {
+        armourSlot = "b" + i;
+        break;
+      }
+    }
+    
+    if (!armourSlot) {
+      showError("Нет места в мешке! Выбросьте что-нибудь.");
+      return;
+    }
+    
+    // Найти место для щита
+    var shieldSlot = null;
+    for (var i = 0; i < 9; i++) {
+      if (!cardMap["b" + i] && i !== parseInt(armourSlot.substring(1))) {
+        shieldSlot = "b" + i;
+        break;
+      }
+    }
+    
+    if (!shieldSlot) {
+      showError("Нет места для щита в мешке! Выбросьте что-нибудь.");
+      return;
+    }
+    
+    // Положить броню и щит в мешок
+    cardMap[armourSlot] = item;
+    usage[armourSlot] = usage[armourId] || 0;
+    
+    // Использовать существующий щит из eq_off, а не создавать новый
+    var shield = cardMap["eq_off"];
+    if (shield && shield.type === "shield") {
+      cardMap[shieldSlot] = shield;
+      usage[shieldSlot] = usage["eq_off"] || 0;
+    }
+    
+    // Очистить слоты
+    cardMap[armourId] = null;
+    delete usage[armourId];
+    cardMap["eq_off"] = null;
+    delete usage["eq_off"];
+    
+    // Очистить плейсхолдер брони если есть
+    if (cardMap["eq_arm2"] && cardMap["eq_arm2"].armor_placeholder) {
+      cardMap["eq_arm2"] = null;
+    }
+    
+    renderBag();
+    renderEquip();
+    return;
+  }
+  
+  // Find free bag slot(s)
+  var freeSlot = null;
+  if (item.weight === "тяжёлое") {
+    // Тяжелая броня требует две подряд свободные ячейки
+    for (var i = 0; i < 8; i++) {
+      if (!cardMap["b" + i] && !cardMap["b" + (i + 1)]) {
+        freeSlot = "b" + i;
+        break;
+      }
+    }
+  } else {
+    // Обычная броня - одна ячейка
+    for (var i = 0; i < 9; i++) {
+      if (!cardMap["b" + i]) {
+        freeSlot = "b" + i;
+        break;
+      }
+    }
+  }
+  
+  if (!freeSlot) {
+    if (item.weight === "тяжёлое") {
+      showError("Нет двух подряд свободных ячеек в мешке!");
+    } else {
+      showError("Нет места в мешке! Выбросьте что-нибудь, чтобы освободить место.");
+    }
+    return;
+  }
+  
+  // Move armour
+  cardMap[freeSlot] = item;
+  usage[freeSlot] = usage[armourId] || 0;
+  cardMap[armourId] = null;
+  delete usage[armourId];
+  
+  // Если тяжелая броня, создать placeholder на вторую ячейку и очистить eq_arm2
+  if (item.weight === "тяжёлое") {
+    cardMap["b" + (parseInt(freeSlot.substring(1)) + 1)] = {placeholder: true, linkedTo: freeSlot};
+    if (cardMap["eq_arm2"] && cardMap["eq_arm2"].armor_placeholder) {
+      cardMap["eq_arm2"] = null;
+    }
+  }
+  
+  renderBag();
+  renderEquip();
+}
+
+function handleEquipShield(bagId) {
+  var item = cardMap[bagId];
+  if (!item || item.type !== "shield") return;
+  
+  if (cardMap["eq_off"]) {
+    showError("Вторая лапа занята! Положите оружие в мешок.");
+    return;
+  }
+  
+  cardMap["eq_off"] = item;
+  usage["eq_off"] = usage[bagId] || 0;
+  cardMap[bagId] = null;
+  delete usage[bagId];
+  
+  renderBag();
+  renderEquip();
+}
+
+function handleUnequipShield(handId) {
+  var item = cardMap[handId];
+  if (!item || item.type !== "shield") return;
+  
+  // Проверить, это щит от "Щит и куртка" ли?
+  var armour = cardMap["eq_arm1"];
+  if (armour && armour.name === "Щит и куртка") {
+    // Это часть "Щит и куртка" - снять обе части
+    
+    // Найти место для брони
+    var armourSlot = null;
+    for (var i = 0; i < 9; i++) {
+      if (!cardMap["b" + i]) {
+        armourSlot = "b" + i;
+        break;
+      }
+    }
+    
+    if (!armourSlot) {
+      showError("Нет места в мешке! Выбросьте что-нибудь.");
+      return;
+    }
+    
+    // Найти место для щита
+    var shieldSlot = null;
+    for (var i = 0; i < 9; i++) {
+      if (!cardMap["b" + i] && i !== parseInt(armourSlot.substring(1))) {
+        shieldSlot = "b" + i;
+        break;
+      }
+    }
+    
+    if (!shieldSlot) {
+      showError("Нет места для щита в мешке! Выбросьте что-нибудь.");
+      return;
+    }
+    
+    // Положить броню и щит в мешок
+    cardMap[armourSlot] = armour;
+    usage[armourSlot] = usage["eq_arm1"] || 0;
+    
+    // Использовать существующий щит item вместо создания нового
+    cardMap[shieldSlot] = item;
+    usage[shieldSlot] = usage[handId] || 0;
+    
+    // Очистить слоты
+    cardMap["eq_arm1"] = null;
+    delete usage["eq_arm1"];
+    cardMap[handId] = null;
+    delete usage[handId];
+    
+    // Очистить плейсхолдер брони если есть
+    if (cardMap["eq_arm2"] && cardMap["eq_arm2"].armor_placeholder) {
+      cardMap["eq_arm2"] = null;
+    }
+    
+    renderBag();
+    renderEquip();
+    return;
+  }
+  
+  // Обычный щит - снять как обычно
   // Find free bag slot
   var freeSlot = null;
   for (var i = 0; i < 9; i++) {
@@ -745,14 +1388,116 @@ function handleUnequipArmour(armourId) {
     return;
   }
   
-  // Move armour
   cardMap[freeSlot] = item;
-  usage[freeSlot] = usage[armourId] || 0;
-  cardMap[armourId] = null;
-  delete usage[armourId];
+  usage[freeSlot] = usage[handId] || 0;
+  cardMap[handId] = null;
+  delete usage[handId];
   
   renderBag();
   renderEquip();
+}
+
+function handleEquipAmmo(bagId) {
+  var item = cardMap[bagId];
+  if (!item || item.type !== "ammo") return;
+  
+  if (cardMap["eq_arm2"]) {
+    showError("Слот для аммуниции занят!");
+    return;
+  }
+  
+  cardMap["eq_arm2"] = item;
+  usage["eq_arm2"] = usage[bagId] || 0;
+  cardMap[bagId] = null;
+  delete usage[bagId];
+  
+  renderBag();
+  renderEquip();
+}
+
+function handleUnequipAmmo(armorId) {
+  var item = cardMap[armorId];
+  if (!item || item.type !== "ammo") return;
+  
+  // Найти свободный слот в мешке
+  var freeSlot = null;
+  for (var i = 0; i < 9; i++) {
+    if (!cardMap["b" + i]) {
+      freeSlot = "b" + i;
+      break;
+    }
+  }
+  
+  if (!freeSlot) {
+    showError("Нет места в мешке! Выбросьте что-нибудь, чтобы освободить место.");
+    return;
+  }
+  
+  cardMap[freeSlot] = item;
+  usage[freeSlot] = usage[armorId] || 0;
+  cardMap[armorId] = null;
+  delete usage[armorId];
+  
+  renderBag();
+  renderEquip();
+}
+
+function handleSendToEndurance(bagId) {
+  var item = cardMap[bagId];
+  if (!item || item.type !== "status") return;
+  
+  var curEnd = statCur.end || 0;
+  
+  // Проверить, есть ли активные слоты (текущее значение ВЫД > 0)
+  if (curEnd <= 0) {
+    showError("Нет активных слотов в выдержке!");
+    return;
+  }
+  
+  // Найти первый свободный слот в выдержке
+  var freeSlot = null;
+  for (var i = 0; i < 6; i++) {
+    if (!cardMap["en" + i]) {
+      freeSlot = "en" + i;
+      break;
+    }
+  }
+  
+  if (!freeSlot) {
+    showError("Нет свободных слотов в выдержке.");
+    return;
+  }
+  
+  // Переместить состояние в выдержку
+  cardMap[freeSlot] = item;
+  usage[freeSlot] = 0;
+  cardMap[bagId] = null;
+  delete usage[bagId];
+  
+  // Уменьшить текущее значение выдержки (потратить один слот)
+  // Но не меньше 0
+  statCur.end = Math.max(0, (statCur.end || 0) - 1);
+  
+  renderBag();
+  renderStats();
+  renderEndurance();
+}
+
+function handleDeleteFromEndurance(enduranceId) {
+  var item = cardMap[enduranceId];
+  if (!item || item.type !== "status") return;
+  
+  // Удалить состояние совсем
+  cardMap[enduranceId] = null;
+  delete usage[enduranceId];
+  
+  // Увеличить текущее значение выдержки (восстановить слот)
+  // Но не больше максимума
+  statCur.end = Math.min(statMax.end || 0, (statCur.end || 0) + 1);
+  
+  renderBag();  // Обновить мешок, чтобы кнопки ↑ появились если есть место
+  renderStats();
+  renderEndurance();
 }
 
 // ── Controls ──────────────────────────────────────────────────────────────
@@ -763,7 +1508,22 @@ function toggleEdit() {
   eb.textContent = editMode ? "Готово" : "Правка";
   eb.classList.toggle("active", editMode);
   document.getElementById("rollBtn").disabled = editMode;
-  renderStats(); renderEquip(); renderBag(); renderIdentity(curChar);
+  
+  renderStats(); 
+  renderEquip(); 
+  renderBag(); 
+  renderIdentity(curChar);
+  
+  // При выходе из edit mode - пересчет выдержки и обновление интерфейса
+  if (!editMode) {
+    setTimeout(function() {
+      renderBag();  // Повторная перерисовка мешка с актуальными проверками выдержки
+      var enduranceModal = document.getElementById("enduranceModal");
+      if (enduranceModal && enduranceModal.classList.contains("open")) {
+        renderEndurance();
+      }
+    }, 50);
+  }
 }
 
 function rollNew() {
@@ -921,8 +1681,8 @@ function openModal() {
   selBtn("segType",   "item");
   selBtn("segWeight", "");
   selBtn("segDice",   "d6");
-  selBtn("segDef",    "1");
   document.getElementById("cardName").value = "";
+  document.getElementById("cardDef").value = "1";
   document.getElementById("cardEffect").value = "";
   document.getElementById("cardCure").value = "";
   document.getElementById("cardRecharge").value = "";
@@ -933,6 +1693,7 @@ function openModal() {
   document.getElementById("statusCureRow").style.display = "none";
   document.getElementById("spellRow").style.display = "none";
   document.getElementById("spellRechargeRow").style.display = "none";
+  document.getElementById("segWeight").parentElement.style.display = "";
   document.getElementById("modalOverlay").classList.add("open");
   setTimeout(function(){ document.getElementById("cardName").focus(); }, 80);
 }
@@ -956,11 +1717,12 @@ function pick(kind, btn) {
     _mType = val;
     selBtn("segType", val);
     document.getElementById("diceRow").style.display = (val === "weapon") ? "" : "none";
-    document.getElementById("defRow").style.display  = (val === "armour") ? "" : "none";
+    document.getElementById("defRow").style.display  = (val === "armour" || val === "shield") ? "" : "none";
     document.getElementById("statusRow").style.display = (val === "status") ? "" : "none";
     document.getElementById("statusCureRow").style.display = (val === "status") ? "" : "none";
     document.getElementById("spellRow").style.display = (val === "spell") ? "" : "none";
     document.getElementById("spellRechargeRow").style.display = (val === "spell") ? "" : "none";
+    document.getElementById("segWeight").parentElement.style.display = (val === "shield" || val === "ammo") ? "none" : "";
   } else if (kind === "weight") {
     _mWeight = val;
     selBtn("segWeight", val);
@@ -980,25 +1742,111 @@ function addCard() {
 
   if (!name) { err.textContent = "Укажите название."; return; }
 
+  // Читаем def из input поля для armor и shield
+  var defVal = null;
+  if (_mType === "armour" || _mType === "shield") {
+    var defInput = document.getElementById("cardDef").value.trim();
+    defVal = defInput ? parseInt(defInput) : null;
+  }
+
   var newCard = {
     name:   name,
     type:   _mType,
-    weight: _mWeight || null,
+    weight: (_mType === "shield" || _mType === "ammo") ? null : (_mWeight || null),
     dice:   (_mType === "weapon") ? _mDice : null,
-    def:    (_mType === "armour") ? _mDef  : null,
+    def:    (_mType === "armour" || _mType === "shield") ? defVal : null,
     effect: (_mType === "status" || _mType === "spell") ? document.getElementById("cardEffect").value.trim() : null,
     cure:   (_mType === "status") ? document.getElementById("cardCure").value.trim() : null,
     recharge: (_mType === "spell") ? document.getElementById("cardRecharge").value.trim() : null
   };
 
-  // Find first empty bag slot
+  // Специальный случай: "Щит и куртка" - добавить броню и щит
+  console.log("DEBUG addCard: _mType=" + _mType + ", name=" + name);
+  if (_mType === "armour" && name === "Щит и куртка") {
+    console.log("DEBUG: Специальный случай Щит и куртка активирован!");
+    // Экипировать броню в eq_arm1
+    if (!cardMap["eq_arm1"]) {
+      cardMap["eq_arm1"] = newCard;
+      usage["eq_arm1"] = 0;
+    } else {
+      err.textContent = "Слот для брони занят!";
+      return;
+    }
+    
+    // Если оружие во второй лапе, убрать его в мешок
+    if (cardMap["eq_off"] && cardMap["eq_off"].type === "weapon") {
+      var weapon = cardMap["eq_off"];
+      var freeSlot = null;
+      
+      // Если тяжелое оружие - ищем две подряд ячейки
+      if (weapon.weight === "тяжёлое") {
+        for (var i = 0; i < 8; i++) {
+          if (!cardMap["b" + i] && !cardMap["b" + (i + 1)]) {
+            freeSlot = "b" + i;
+            break;
+          }
+        }
+      } else {
+        // Обычное оружие - одна ячейка
+        for (var i = 0; i < 9; i++) {
+          if (!cardMap["b" + i]) {
+            freeSlot = "b" + i;
+            break;
+          }
+        }
+      }
+      
+      if (freeSlot) {
+        cardMap[freeSlot] = weapon;
+        usage[freeSlot] = usage["eq_off"] || 0;
+        
+        // Если тяжелое, создать плейсхолдер
+        if (weapon.weight === "тяжёлое") {
+          var nextSlot = "b" + (parseInt(freeSlot.substring(1)) + 1);
+          cardMap[nextSlot] = {placeholder: true, linkedTo: freeSlot};
+        }
+      }
+      
+      // Очистить плейсхолдер со второй лапы
+      if (cardMap["eq_off"] && cardMap["eq_off"].placeholder) {
+        cardMap["eq_off"] = null;
+      }
+    }
+    
+    // Экипировать щит во вторую лапу
+    var shield = {name: "Щит", def: 1, type: "shield"};
+    cardMap["eq_off"] = shield;
+    usage["eq_off"] = 0;
+    
+    renderBag();
+    renderEquip();
+    closeModal();
+    return;
+  }
+
+  // Find first empty bag slot(s)
   var placed = false;
-  for (var i = 0; i < 9; i++) {
-    if (!cardMap["b" + i]) {
-      cardMap["b" + i] = newCard;
-      usage["b" + i]   = 0;
-      placed = true;
-      break;
+  
+  // Любой предмет с весовым классом "тяжёлое" занимает две ячейки в мешке
+  if (_mWeight === "тяжёлое") {
+    for (var i = 0; i < 8; i++) {
+      if (!cardMap["b" + i] && !cardMap["b" + (i + 1)]) {
+        cardMap["b" + i] = newCard;
+        usage["b" + i] = 0;
+        cardMap["b" + (i + 1)] = {placeholder: true, linkedTo: "b" + i};
+        placed = true;
+        break;
+      }
+    }
+  } else {
+    // Обычное оружие, предметы, щит и аммуниция занимают одну ячейку
+    for (var i = 0; i < 9; i++) {
+      if (!cardMap["b" + i]) {
+        cardMap["b" + i] = newCard;
+        usage["b" + i]   = 0;
+        placed = true;
+        break;
+      }
     }
   }
 
@@ -1008,7 +1856,9 @@ function addCard() {
       ? ["eq_main", "eq_off"]
       : (_mType === "armour")
         ? ["eq_arm1", "eq_arm2"]
-        : [];
+        : (_mType === "ammo")
+          ? ["eq_arm2"]
+          : [];
     for (var j = 0; j < equipSlots.length; j++) {
       var sid = equipSlots[j];
       if (!cardMap[sid]) {
@@ -1133,6 +1983,62 @@ function closeStatus() {
   document.getElementById("statusModal").classList.remove("open");
 }
 
+function openRest() {
+  document.getElementById("restModal").classList.add("open");
+}
+
+function closeRest() {
+  document.getElementById("restModal").classList.remove("open");
+}
+
+function openDevelopment() {
+  document.getElementById("developmentModal").classList.add("open");
+}
+
+function closeDevelopment() {
+  document.getElementById("developmentModal").classList.remove("open");
+}
+
+function openEndurance() {
+  renderEndurance();
+  document.getElementById("enduranceModal").classList.add("open");
+}
+
+function closeEndurance() {
+  document.getElementById("enduranceModal").classList.remove("open");
+}
+
+function renderEndurance() {
+  var grid = document.getElementById("enduranceGrid");
+  if (!grid) return;
+  grid.innerHTML = "";
+  
+  var maxEnd = statMax.end || 0;
+  var curEnd = statCur.end || 0;
+  
+  for (var i = 0; i < 6; i++) {
+    var slotId = "en" + i;
+    var card = cardMap[slotId];
+    var isActive = i < maxEnd;  // Активный слот = если номер < максимальному значению ВЫД
+    var slot = document.createElement("div");
+    slot.style.position = "relative";
+    
+    if (isActive && card) {
+      // Активный слот с карточкой - показать карточку и кнопку удаления
+      slot.innerHTML = cardHTML(slotId, true) + 
+        '<button class="del-btn" data-del-from-endurance="' + slotId + '" title="Удалить">×</button>';
+    } else if (isActive) {
+      // Активный пустой слот
+      slot.innerHTML = '<div class="card empty">&mdash;</div>';
+    } else {
+      // Неактивный слот (серый, отключен)
+      slot.innerHTML = '<div class="card empty disabled" style="opacity:0.3">&mdash;</div>';
+    }
+    
+    grid.appendChild(slot);
+  }
+}
+
 function addStatusToInventory(status) {
   // Проверяем свободные слоты в мешке
   var freeBagSlot = null;
@@ -1213,6 +2119,12 @@ document.addEventListener("click", function(e) {
   if (e.target === magicModal) closeMagic();
   var statusModal = document.getElementById("statusModal");
   if (e.target === statusModal) closeStatus();
+  var restModal = document.getElementById("restModal");
+  if (e.target === restModal) closeRest();
+  var developmentModal = document.getElementById("developmentModal");
+  if (e.target === developmentModal) closeDevelopment();
+  var enduranceModal = document.getElementById("enduranceModal");
+  if (e.target === enduranceModal) closeEndurance();
 });
 
 initFromChar(INIT);
@@ -1240,6 +2152,8 @@ if (menuRollBtn) menuRollBtn.classList.add('unlock-3');
         <button class="sel" data-val="item"   onclick="pick('type',this)">Предмет</button>
         <button          data-val="weapon" onclick="pick('type',this)">Оружие</button>
         <button          data-val="armour" onclick="pick('type',this)">Броня</button>
+        <button          data-val="shield" onclick="pick('type',this)">Щит</button>
+        <button          data-val="ammo"   onclick="pick('type',this)">Аммуниция</button>
         <button          data-val="status" onclick="pick('type',this)">Состояние</button>
         <button          data-val="spell"  onclick="pick('type',this)">Заклинание</button>
       </div>
@@ -1272,11 +2186,7 @@ if (menuRollBtn) menuRollBtn.classList.add('unlock-3');
 
     <div class="form-row" id="defRow" style="display:none">
       <label>Защита (def)</label>
-      <div class="seg" id="segDef">
-        <button          data-val="0" onclick="pick('def',this)">0</button>
-        <button class="sel" data-val="1" onclick="pick('def',this)">1</button>
-        <button          data-val="2" onclick="pick('def',this)">2</button>
-      </div>
+      <input type="number" id="cardDef" placeholder="0" min="0" max="10" style="font-size:1rem;padding:6px;border:1px solid var(--brd)">
     </div>
 
     <div class="form-row" id="statusRow" style="display:none">
@@ -1485,6 +2395,114 @@ if (menuRollBtn) menuRollBtn.classList.add('unlock-3');
     <button class="status-close" onclick="closeStatus()">&times;</button>
     <h2 class="status-title">👹 Состояния</h2>
     <div class="status-grid" id="statusGrid"></div>
+  </div>
+</div>
+
+<!-- Rest Modal -->
+<div class="status-modal" id="restModal" onclick="if(event.target===this) closeRest()">
+  <div class="status-content">
+    <button class="status-close" onclick="closeRest()">&times;</button>
+    <h2 class="status-title">😴 Отдых и лечение</h2>
+    <div style="padding:20px;font-size:0.95rem;line-height:1.6">
+      <p>Есть три способа, с помощью которых мышь может отдохнуть и восстановиться:</p>
+      
+      <div style="margin-bottom:16px">
+        <h3 style="margin:8px 0;font-size:1rem">• Передышка</h3>
+        <p style="margin:4px 0">Занимает один ход. Глоток воды и несколько минут отдыха восстановят <strong>d6+1 пунктов</strong> общей защиты.</p>
+      </div>
+      
+      <div style="margin-bottom:16px">
+        <h3 style="margin:8px 0;font-size:1rem">• Длительный отдых</h3>
+        <p style="margin:4px 0">Занимает одну вахту. Еда и сон восстановят <strong>всю общую защиту</strong>. Если общая защита уже была полной, брось d6, чтобы узнать, насколько восстановилась характеристика.</p>
+      </div>
+      
+      <div style="margin-bottom:16px">
+        <h3 style="margin:8px 0;font-size:1rem">• Полный отдых</h3>
+        <p style="margin:4px 0">Занимает неделю, которую нужно провести в безопасном месте. Он полностью восстанавливает характеристики мыши и убирает все долговременные состояния. Неделя питания и проживания в поселении обычно стоит <strong>20 з</strong>.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Development Modal -->
+<div class="status-modal" id="developmentModal" onclick="if(event.target===this) closeDevelopment()">
+  <div class="status-content">
+    <button class="status-close" onclick="closeDevelopment()">&times;</button>
+    <h2 class="status-title">⬆️ Развитие</h2>
+    <div style="padding:20px;font-size:0.95rem;line-height:1.6;max-height:70vh;overflow-y:auto">
+      <h3 style="margin:0 0 12px;font-size:1rem">Пункты опыта</h3>
+      <p style="margin:0 0 16px">Ваша мышь зарабатывает <strong>пункты опыта (ПО)</strong>, когда приносит <strong>сокровища</strong> или полезные вещи из <strong>опасных мест</strong> в безопасные <strong>мышиные поселения</strong>.</p>
+      <p style="margin:0 0 12px">Стоимость сокровищ, доставленных в безопасное место, оценивается в зёрнышках. Каждое такое зёрнышко приносит <strong>1 пункт опыта</strong>, и полученный таким образом опыт делится поровну на всех членов команды.</p>
+      <p style="margin:0 0 16px">Мышь может заработать <strong>дополнительные пункты опыта</strong>, если <strong>потратит</strong> свои зёрнышки <strong>безвозмездно</strong> на благо общества. За каждые 10 зёрнышек, потраченных таким образом, мышь зарабатывает <strong>1 пункт опыта</strong>.</p>
+
+      <h3 style="margin:16px 0 12px;font-size:1rem">Уровни</h3>
+      <p style="margin:0 0 12px">В начале игры твоя мышь имеет уровень 1. Таблица ниже показывает, сколько пунктов опыта нужно накопить, чтобы повысить уровень:</p>
+      
+      <table style="width:100%;border-collapse:collapse;margin:0 0 16px;font-size:0.9rem">
+        <thead>
+          <tr style="background:#d8cfc4;border-bottom:1.5px solid #2e2218">
+            <th style="padding:6px;text-align:left;border:1px solid #2e2218">Уровень</th>
+            <th style="padding:6px;text-align:left;border:1px solid #2e2218">КОЗ</th>
+            <th style="padding:6px;text-align:left;border:1px solid #2e2218">Выдержка</th>
+            <th style="padding:6px;text-align:left;border:1px solid #2e2218">Опыт</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr style="border-bottom:1px solid #d0c0b0">
+            <td style="padding:6px;border:1px solid #d0c0b0">1</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">1d6</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">—</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">0</td>
+          </tr>
+          <tr style="border-bottom:1px solid #d0c0b0">
+            <td style="padding:6px;border:1px solid #d0c0b0">2</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">2d6</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">1</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">1000</td>
+          </tr>
+          <tr style="border-bottom:1px solid #d0c0b0">
+            <td style="padding:6px;border:1px solid #d0c0b0">3</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">3d6</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">2</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">3000</td>
+          </tr>
+          <tr style="border-bottom:1px solid #d0c0b0">
+            <td style="padding:6px;border:1px solid #d0c0b0">4</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">4d6</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">2</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">6000</td>
+          </tr>
+          <tr>
+            <td style="padding:6px;border:1px solid #d0c0b0">5+</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">4d6</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">3</td>
+            <td style="padding:6px;border:1px solid #d0c0b0">+5000</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 style="margin:16px 0 12px;font-size:1rem">Повышение уровня</h3>
+      <p style="margin:0 0 8px">Когда твоя мышь накопит достаточно пунктов опыта, сделай следующее:</p>
+      <ul style="margin:0 0 16px;padding-left:20px">
+        <li style="margin-bottom:8px"><strong>Брось d20</strong> для <strong>силы, ловкости и воли</strong>. Если результат выше текущего значения характеристики, повысь его на единицу.</li>
+        <li><strong>Брось кубики общей защиты</strong> — столько, сколько указано для нового уровня. Если результат выше, чем текущая общая защита твоего персонажа, замени её выпавшим числом. В противном случае увеличь общую защиту на единицу.</li>
+      </ul>
+
+      <h3 style="margin:16px 0 12px;font-size:1rem">Выдержка</h3>
+      <p style="margin:0 0 12px">Достигнув второго уровня, мышь приобретает <strong>выдержку</strong>. Она позволяет <strong>игнорировать состояния</strong>.</p>
+      <p style="margin:0">За каждый пункт <strong>выдержки</strong> ты можешь переместить одну карточку состояния в ячейку выдержки на листе персонажа. Когда состояние перемещено, его можно убрать, только выполнив требования, которые указаны в графе <strong>«Способ избавиться»</strong>.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Endurance Modal -->
+<div class="status-modal" id="enduranceModal" onclick="if(event.target===this) closeEndurance()">
+  <div class="status-content">
+    <button class="status-close" onclick="closeEndurance()">&times;</button>
+    <h2 class="status-title">Выдержка</h2>
+    <div style="padding:20px">
+      <div class="endurance-grid" id="enduranceGrid"></div>
+    </div>
   </div>
 </div>
 

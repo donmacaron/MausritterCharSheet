@@ -106,6 +106,28 @@ def roll_stat():
 def fi(t):
     return {"name":t[0],"dice":t[1],"weight":t[2],"type":t[3]}
 
+def add_to_bag(bag_items, item):
+    """Добавить предмет в мешок, учитывая, что тяжелое оружие занимает 2 ячейки"""
+    if item["type"] == "weapon" and item["weight"] == "тяжёлое":
+        # Найти 2 подряд свободные ячейки
+        for i in range(8):  # 0-7, чтобы было место для второй ячейки
+            if i < len(bag_items):
+                free_slots = sum(1 for j in range(i, min(i+2, len(bag_items))) if bag_items[j] is None)
+            else:
+                free_slots = 2 - i
+            
+            if free_slots >= 2 and i + 1 < len(bag_items):
+                if bag_items[i] is None and bag_items[i+1] is None:
+                    bag_items[i] = item
+                    bag_items[i+1] = None  # Placeholder будет добавлен на JavaScript стороне
+                    return
+    
+    # Для обычного оружия и других предметов
+    for i in range(len(bag_items)):
+        if bag_items[i] is None:
+            bag_items[i] = item
+            return
+
 def generate():
     sv = roll_stat(); dv = roll_stat(); wv = roll_stat()
     hp = random.randint(1,6); pips = random.randint(1,6)
@@ -113,16 +135,16 @@ def generate():
     a, b = BGI[(hp, pips)]
     bg_items = [fi(a), fi(b)]
     weapon = random.choice(WEAPONS).copy()
-    equipped_armor = []; off_hand = None; bag_items = []
+    equipped_armor = []; off_hand = None; bag_items = [None]*9  # Инициализировать как 9 None
     for item in bg_items:
         if item["type"] == "armour" and len(equipped_armor) < 2:
             equipped_armor.append(item)
         elif item["type"] == "weapon" and off_hand is None:
             off_hand = item
         else:
-            bag_items.append(item)
-    bag_items.append({"name":"Связка факелов","dice":None,"weight":None,"type":"item"})
-    bag_items.append({"name":"Пайки","dice":None,"weight":None,"type":"item"})
+            add_to_bag(bag_items, item)
+    add_to_bag(bag_items, {"name":"Связка факелов","dice":None,"weight":None,"type":"item"})
+    add_to_bag(bag_items, {"name":"Пайки","dice":None,"weight":None,"type":"item"})
     mx = max(sv, dv, wv)
     if mx <= 9:
         ea, eb = BGI[(random.randint(1,6), random.randint(1,6))]
@@ -133,12 +155,43 @@ def generate():
             elif item["type"] == "weapon" and off_hand is None:
                 off_hand = item
             else:
-                bag_items.append(item)
+                add_to_bag(bag_items, item)
     while len(equipped_armor) < 2:
         equipped_armor.append(None)
-    bag_items = bag_items[:9]
-    while len(bag_items) < 9:
-        bag_items.append(None)
+    
+    # Если два оружия - убедиться что тяжелое в main_hand
+    if off_hand and weapon:
+        main_is_heavy = weapon.get("weight") == "тяжёлое"
+        off_is_heavy = off_hand.get("weight") == "тяжёлое"
+        
+        if off_is_heavy and not main_is_heavy:
+            # Если тяжелое во второй руке, а главное нет - поменять их местами
+            add_to_bag(bag_items, weapon)
+            weapon = off_hand
+            off_hand = None
+        elif main_is_heavy and not off_is_heavy:
+            # Если главное оружие тяжелое, а второе нет - убрать второе в мешок
+            add_to_bag(bag_items, off_hand)
+            off_hand = None
+        elif off_is_heavy and main_is_heavy:
+            # Оба тяжелые - одно в мешок
+            add_to_bag(bag_items, off_hand)
+            off_hand = None
+        # Если оба легкие/средние - оставить как есть
+    
+    # Проверить, есть ли оружие для дальнего боя (Праща, Лук, Арбалет)
+    ranged_weapons = {"Праща": "Мешочек с камнями", "Лук": "Стрелы", "Арбалет": "Болты"}
+    ammo_name = None
+    if weapon and weapon.get("name") in ranged_weapons:
+        ammo_name = ranged_weapons[weapon.get("name")]
+    if off_hand and off_hand.get("name") in ranged_weapons:
+        ammo_name = ranged_weapons[off_hand.get("name")]
+    
+    # Если есть оружие для дальнего боя - добавить Аммуницию в мешок
+    if ammo_name:
+        add_to_bag(bag_items, {"name":ammo_name,"dice":None,"weight":None,"type":"ammo"})
+    
+    # bag_items уже инициализирован как [None]*9, просто убедиться что все ячейки заполнены
     bs, disp = BIRTHSIGNS[random.randint(0,5)]
     cc = COAT_COLORS[random.randint(0,5)]
     cp = COAT_PATTERNS[random.randint(0,5)]
@@ -148,6 +201,7 @@ def generate():
         name=name, background=bg, str_val=sv, dex_val=dv, wil_val=wv,
         hp=hp, pips=pips, birthsign=bs, disposition=disp,
         coat=f"{cc}, {cp.lower()}", physical_detail=pd,
+        endurance_max=0,
         equipped={"main_hand":weapon,"off_hand":off_hand,
                   "armor1":equipped_armor[0],"armor2":equipped_armor[1]},
         bag=bag_items,
