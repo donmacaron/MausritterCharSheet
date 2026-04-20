@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>Mausritter</title>
+<title>{{ page_title or "Mausritter" }}</title>
 <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 </head>
@@ -22,8 +22,22 @@
   <h1 class="title">Храбрый мышиный авантюрист...</h1>
   <div class="btn-row">
     <button class="menu-toggle" id="menuToggle" onclick="toggleMenu()">☰</button>
+    {% if page_mode == "guest" %}
     <input type="file" id="fileIn" accept=".json" style="display:none">
+    {% endif %}
   </div>
+</div>
+
+<div class="sheet-nav">
+  {% if page_mode == "account" %}
+  <a href="{{ url_for('account') }}">← К кабинету</a>
+  {% elif page_mode == "guest" %}
+  <a href="{{ url_for('landing') }}">← На старт</a>
+  {% endif %}
+  <span class="save-notice" id="saveNotice"></span>
+  {% if page_mode == "account" %}
+  <button class="save-btn" onclick="saveChar()" title="Сохранить персонажа в аккаунт">💾 {{ save_label }}</button>
+  {% endif %}
 </div>
 
 <!-- Menu Panel -->
@@ -68,6 +82,13 @@
 
 <script>
 window.INIT = {{ character | tojson }};
+window.APP_CONFIG = {
+  mode: {{ page_mode | tojson }},
+  saveLabel: {{ save_label | tojson }},
+  saveUrl: {{ (url_for('save_character', character_id=character_row.id) if character_row else None) | tojson }},
+  canPersist: {{ (page_mode == "account" and is_owner) | tojson }},
+  isGuest: {{ (page_mode == "guest") | tojson }}
+};
 </script>
 <script src="{{ url_for('static', filename='js/core.js') }}"></script>
 <script src="{{ url_for('static', filename='js/render.js') }}"></script>

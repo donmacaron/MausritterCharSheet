@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Mausritter | Кабинет{% endblock %}
+
+{% block content %}
+<div class="panel">
+  <p class="eyebrow">Кабинет</p>
+  <h1>{{ user.username }}</h1>
+  <div class="action-row">
+    <form method="post" action="{{ url_for('create_character') }}" style="flex:1">
+      <button class="primary-btn" style="width:100%" type="submit">Создать мышь</button>
+    </form>
+    <button class="secondary-btn" type="button" id="deletionToggle">Удалить</button>
+  </div>
+</div>
+
+<div class="panel character-list-panel" id="characterListPanel">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Персонажи</p>
+      <h2>Мои мыши</h2>
+    </div>
+    <span class="muted-note" id="deletionHint" style="white-space:nowrap">Обычный режим: клик по строке открывает лист персонажа.</span>
+  </div>
+
+  {% if characters %}
+  <div class="character-table-wrap">
+    <table class="character-table">
+      <thead>
+        <tr>
+          <th>Мышь</th>
+          <th>Имя</th>
+          <th>Происхождение</th>
+          <th class="delete-col">Удалить</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for character in characters %}
+        <tr class="character-row" data-href="{{ url_for('character_detail', character_id=character.id) }}">
+          <td class="emoji-cell">{{ character.emoji }}</td>
+          <td>{{ character.name }}</td>
+          <td>{{ character.background }}</td>
+          <td class="delete-col">
+            <form method="post" action="{{ url_for('delete_character', character_id=character.id) }}" onsubmit="return confirm('Удалить персонажа {{ character.name }}?');">
+              <button type="submit" class="danger-icon" title="Удалить">🗑</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty-state">Пока здесь пусто. Создайте первую мышь, и она появится в списке.</p>
+  {% endif %}
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  var panel = document.getElementById("characterListPanel");
+  var toggle = document.getElementById("deletionToggle");
+  var hint = document.getElementById("deletionHint");
+  var rows = document.querySelectorAll(".character-row");
+
+  rows.forEach(function(row) {
+    row.addEventListener("click", function(event) {
+      if (panel.classList.contains("deletion-mode")) return;
+      if (event.target.closest("form") || event.target.closest("button")) return;
+      window.location.href = row.getAttribute("data-href");
+    });
+  });
+
+  if (toggle) {
+    toggle.addEventListener("click", function() {
+      panel.classList.toggle("deletion-mode");
+      toggle.classList.toggle("danger-btn");
+      toggle.classList.toggle("secondary-btn");
+      toggle.textContent = panel.classList.contains("deletion-mode") ? "Выйти из удаления" : "Удалить";
+      hint.textContent = panel.classList.contains("deletion-mode") 
+        ? "Режим удаления: нажимайте корзину для удаления." 
+        : "Обычный режим: клик по строке открывает лист персонажа.";
+    });
+  }
+
+  var securityToggle = document.getElementById("securityToggle");
+  var securityForm = document.getElementById("securityForm");
+  if (securityToggle) {
+    securityToggle.addEventListener("click", function() {
+      var isHidden = securityForm.style.display === "none";
+      securityForm.style.display = isHidden ? "grid" : "none";
+      securityToggle.textContent = isHidden ? "Скрыть" : "Показать";
+    });
+  }
+});
+</script>
+
+<div class="panel" id="securityPanel" style="margin-top:24px">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <div>
+      <p class="eyebrow">Безопасность</p>
+      <h2 style="margin:0">Сменить пароль</h2>
+    </div>
+    <button class="secondary-btn" type="button" id="securityToggle" style="white-space:nowrap">Скрыть</button>
+  </div>
+  <form class="stack-form" id="securityForm" method="post" action="{{ url_for('change_password') }}">
+    <label>
+      <span>Текущий пароль</span>
+      <input type="password" name="current_password" autocomplete="current-password" required>
+    </label>
+    <label>
+      <span>Новый пароль</span>
+      <input type="password" name="new_password" autocomplete="new-password" required>
+    </label>
+    <label>
+      <span>Подтвердите пароль</span>
+      <input type="password" name="confirm_password" autocomplete="new-password" required>
+    </label>
+    <button class="primary-btn" style="width:100%" type="submit">Обновить пароль</button>
+  </form>
+</div>
+
+{% endblock %}

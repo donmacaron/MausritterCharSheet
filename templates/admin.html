@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Mausritter | Админка{% endblock %}
+
+{% block content %}
+<div class="stats-grid">
+  <div class="stat-card">
+    <span>Пользователи</span>
+    <strong>{{ stats.users }}</strong>
+  </div>
+  <div class="stat-card">
+    <span>Персонажи</span>
+    <strong>{{ stats.characters }}</strong>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Super User</p>
+      <h1>Пользователи</h1>
+    </div>
+  </div>
+  <div class="character-table-wrap">
+    <table class="character-table">
+      <thead>
+        <tr>
+          <th>Имя</th>
+          <th>Роль</th>
+          <th>Персонажей</th>
+          <th>Создан</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr class="character-row" data-href="{{ url_for('admin_user_detail', user_id=user.id) }}">
+          <td>{{ user.username }}</td>
+          <td>{% if user.is_superuser %}superuser{% else %}user{% endif %}</td>
+          <td>{{ user.character_count }}</td>
+          <td>{{ user.created_at }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  document.querySelectorAll(".character-row").forEach(function(row) {
+    row.addEventListener("click", function() {
+      window.location.href = row.getAttribute("data-href");
+    });
+  });
+});
+</script>
+{% endblock %}

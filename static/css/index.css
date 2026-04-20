@@ -25,6 +25,10 @@ body{font-family:var(--body);background:var(--bg);padding:14px;min-height:100vh}
 .header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:18px;gap:10px}
 .title{font-family:var(--gothic);font-size:1.9rem;line-height:1.15;flex:1}
 .btn-row{display:flex;gap:7px;flex-shrink:0;position:relative}
+.sheet-nav{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:-6px 0 14px}
+.sheet-nav a{color:var(--brd);text-decoration:none;border-bottom:1px dashed rgba(46,34,24,.35)}
+.save-notice{min-height:1.2em;color:#2f6b3b;font-size:.95rem}
+.save-notice.error{color:#8d2f2f}
 .menu-toggle{padding:8px 14px;border:1.5px solid var(--brd);background:#e0d9cf;
   cursor:pointer;font-family:var(--body);font-size:1.2rem;line-height:1;color:var(--brd)}
 .menu-toggle:hover{background:#cfc8be}

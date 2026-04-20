@@ -41,7 +41,37 @@ var SPELLS = [
 var EQUIP_IDS    = ["eq_main","eq_off","eq_arm1","eq_arm2"];
 var EQUIP_LABELS = ["Осн. лапа","Вторая лапа","Броня","Аммуниция"];
 
+function initFromSavedState(state) {
+  var meta = state.meta || {};
+  curChar = {
+    name: meta.name || "",
+    background: meta.background || "",
+    birthsign: meta.birthsign || "",
+    disposition: meta.disposition || "",
+    coat: meta.coat || "",
+    physical_detail: meta.physical_detail || "",
+    pips: meta.pips || 0,
+    str_val: (state.statMax || {}).str || 0,
+    dex_val: (state.statMax || {}).dex || 0,
+    wil_val: (state.statMax || {}).wil || 0,
+    hp: (state.statMax || {}).hp || 0,
+    endurance_max: (state.statMax || {}).end || 0
+  };
+  cardMap = state.cardMap || {};
+  usage = state.usage || {};
+  statMax = state.statMax || {str: 0, dex: 0, wil: 0, hp: 0, end: 0};
+  statCur = state.statCur || {str: 0, dex: 0, wil: 0, hp: 0, end: 0};
+  weaponMode = {};
+  if (cardMap.eq_main && cardMap.eq_main.type === "weapon") {
+    weaponMode.eq_main = (cardMap.eq_main.weight === "С‚СЏР¶С‘Р»РѕРµ" || (cardMap.eq_off && cardMap.eq_off.placeholder && cardMap.eq_off.linkedTo === "eq_main")) ? 2 : 1;
+  }
+}
+
 function initFromChar(c) {
+  if (c && c.v && c.meta && c.cardMap) {
+    initFromSavedState(c);
+    return;
+  }
   curChar = c;
   var eq = c.equipped || {};
   cardMap = {

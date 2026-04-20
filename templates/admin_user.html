@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Mausritter | {{ managed_user.username }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+  <div class="panel">
+    <p class="eyebrow">Пользователь</p>
+    <h1>{{ managed_user.username }}</h1>
+    <p class="muted-note">Роль: {% if managed_user.is_superuser %}superuser{% else %}user{% endif %}</p>
+    <p class="muted-note">Создан: {{ managed_user.created_at }}</p>
+  </div>
+
+  <div class="panel">
+    <p class="eyebrow">Администрирование</p>
+    <h2>Сброс пароля</h2>
+    <form class="stack-form" method="post" action="{{ url_for('admin_reset_password', user_id=managed_user.id) }}">
+      <label>
+        <span>Новый пароль</span>
+        <input type="text" name="new_password" required>
+      </label>
+      <button class="primary-btn" style="width:100%" type="submit">Сбросить пароль</button>
+    </form>
+    {% if managed_user.id != current_user.id %}
+    <form class="inline-danger-form" method="post" action="{{ url_for('admin_delete_user', user_id=managed_user.id) }}" onsubmit="return confirm('Удалить пользователя {{ managed_user.username }} вместе со всеми персонажами?');">
+      <button class="danger-btn" style="width:100%" type="submit">Удалить пользователя</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="panel character-list-panel deletion-mode">
+  <div class="panel-header">
+    <div>
+      <p class="eyebrow">Персонажи пользователя</p>
+      <h2>{{ managed_user.username }}</h2>
+    </div>
+    <span class="muted-note" style="white-space:nowrap">Строка открывает персонажа, корзина удаляет.</span>
+  </div>
+
+  {% if characters %}
+  <div class="character-table-wrap">
+    <table class="character-table">
+      <thead>
+        <tr>
+          <th>Мышь</th>
+          <th>Имя</th>
+          <th>Происхождение</th>
+          <th class="delete-col">Удалить</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for character in characters %}
+        <tr class="character-row" data-href="{{ url_for('character_detail', character_id=character.id) }}">
+          <td class="emoji-cell">{{ character.emoji }}</td>
+          <td>{{ character.name }}</td>
+          <td>{{ character.background }}</td>
+          <td class="delete-col">
+            <form method="post" action="{{ url_for('admin_delete_character', character_id=character.id) }}" onsubmit="return confirm('Удалить персонажа {{ character.name }}?');">
+              <button type="submit" class="danger-icon" title="Удалить">🗑</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="empty-state">У этого пользователя ещё нет сохранённых персонажей.</p>
+  {% endif %}
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  document.querySelectorAll(".character-row").forEach(function(row) {
+    row.addEventListener("click", function(event) {
+      if (event.target.closest("form") || event.target.closest("button")) return;
+      window.location.href = row.getAttribute("data-href");
+    });
+  });
+});
+</script>
+{% endblock %}

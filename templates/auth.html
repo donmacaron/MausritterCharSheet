@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Mausritter | {{ title }}{% endblock %}
+
+{% block content %}
+<section class="narrow-panel">
+  <div class="panel">
+    <p class="eyebrow">Учётная запись</p>
+    <h1>{{ title }}</h1>
+    <form class="stack-form" method="post">
+      <label>
+        <span>Имя пользователя</span>
+        <input type="text" name="username" autocomplete="username" required>
+      </label>
+      <label>
+        <span>Пароль</span>
+        <input type="password" name="password" autocomplete="{% if mode == 'login' %}current-password{% else %}new-password{% endif %}" required>
+      </label>
+      <button class="primary-btn" style="width:100%" type="submit">{{ submit_label }}</button>
+    </form>
+    <p class="muted-note" style="text-align:center;margin-top:12px">
+      {% if mode == "login" %}
+      Нет аккаунта? <a href="{{ url_for('signup') }}">Создать новый</a>
+      {% else %}
+      Уже есть аккаунт? <a href="{{ url_for('login') }}">Войти</a>
+      {% endif %}
+    </p>
+  </div>
+</section>
+{% endblock %}

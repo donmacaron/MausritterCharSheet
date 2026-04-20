@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Mausritter | Старт{% endblock %}
+
+{% block content %}
+<div class="hero-card">
+  <p class="eyebrow">Mausritter Character Keeper</p>
+  <h1>Мыши долго не живут, так зачем тратить время на создание персонажа в ручную?</h1>
+  <p class="hero-copy">
+    Гостевой режим остаётся для быстрого создания, а аккаунт позволяет сохранять своих мышей на сервере!
+  </p>
+  <div class="hero-actions">
+    <a class="primary-btn" href="{{ url_for('signup') }}">Создать аккаунт</a>
+    <a class="secondary-btn" href="{{ url_for('login') }}">Войти</a>
+    <a class="secondary-btn" href="{{ url_for('guest_sheet') }}">Просто создать мышь</a>
+  </div>
+</div>
+{% endblock %}

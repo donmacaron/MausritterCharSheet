@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{% block title %}Mausritter{% endblock %}</title>
+<link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/site.css') }}">
+{% block head %}{% endblock %}
+</head>
+<body class="site-body {% block body_class %}{% endblock %}">
+  <header class="site-header">
+    <a class="brand" href="{{ url_for('landing') }}">Mausritter</a>
+    <nav class="site-nav">
+      {% if current_user %}
+      {% if current_user.is_superuser %}
+      <a href="{{ url_for('admin_dashboard') }}">Админка</a>
+      {% endif %}
+      <form method="post" action="{{ url_for('logout') }}" style="display:inline">
+        <button type="submit" class="ghost-btn">Выйти</button>
+      </form>
+      {% else %}
+      <!-- <a href="{{ url_for('signup') }}">Создать аккаунт</a>
+      <a href="{{ url_for('login') }}">Войти</a>
+      <a href="{{ url_for('guest_sheet') }}">Просто создать мышь</a> -->
+      {% endif %}
+    </nav>
+  </header>
+
+  <main class="site-shell">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flash-stack">
+          {% for category, message in messages %}
+          <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer style="width: 100%; margin-top: 40px; padding: 16px 14px; border-top: 1.5px solid #2e2218; text-align: center; background: #f0ebe0;">
+    <p style="margin: 0; color: #6b5c4c; font-size: 0.85rem;">© 2026 <strong style="color: #2e2218;">don_macaron</strong></p>
+    <div style="display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 8px;">
+      <a href="https://t.me/dmhqonline" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 6px; opacity: 0.7; transition: opacity 0.2s; text-decoration: none; color: #2e2218;" title="Telegram канал">
+        <img src="{{ url_for('static', filename='telegram-icon.svg') }}" alt="Telegram" style="width: 20px; height: 20px; display: block;"> Мой телеграм канал <img src="{{ url_for('static', filename='telegram-icon.svg') }}" alt="Telegram" style="width: 20px; height: 20px; display: block;">
+      </a>
+    </div>
+  </footer>
+</body>
+</html>

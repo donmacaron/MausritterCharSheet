@@ -4,7 +4,8 @@ function toggleEdit() {
   var eb = document.getElementById("editBtn");
   eb.textContent = editMode ? "Готово" : "Правка";
   eb.classList.toggle("active", editMode);
-  document.getElementById("rollBtn").disabled = editMode;
+  var rollBtnEl = document.getElementById("rollBtn");
+  if (rollBtnEl) rollBtnEl.disabled = editMode;
   
   renderStats(); 
   renderEquip(); 
@@ -27,6 +28,7 @@ function rollNew() {
   if (editMode) return;
   var btn = document.getElementById("rollBtn") || document.querySelector('[id="rollBtn"]');
   var menuBtn = document.querySelector('.menu-btn.roll-btn');
+  if (!btn) return;
   
   // Увеличиваем счетчик нажатий
   rollClickCount++;
@@ -94,12 +96,12 @@ function rollNew() {
 
 // ── Boot ──────────────────────────────────────────────────────────────────
 // Сохранение / Загрузка
-function saveChar() {
+function buildSaveState() {
   var ni = document.querySelector(".char-name-input");
   if (ni) curChar.name = ni.value;
   var pi = document.querySelector(".pips-input");
   if (pi) curChar.pips = parseInt(pi.value) || 0;
-  var state = {
+  return {
     v: 1,
     meta: {
       name:            curChar.name            || "",
@@ -115,7 +117,10 @@ function saveChar() {
     cardMap: cardMap,
     usage:   usage
   };
-  var json = JSON.stringify(state, null, 2);
+}
+
+function exportChar() {
+  var json = JSON.stringify(buildSaveState(), null, 2);
   var blob = new Blob([json], {type: "application/json"});
   var url  = URL.createObjectURL(blob);
   var a    = document.createElement("a");
@@ -127,7 +132,42 @@ function saveChar() {
   URL.revokeObjectURL(url);
 }
 
-document.getElementById("fileIn").addEventListener("change", function(e) {
+function showSaveNotice(message, isError) {
+  var notice = document.getElementById("saveNotice");
+  if (!notice) return;
+  notice.textContent = message;
+  notice.classList.toggle("error", !!isError);
+  clearTimeout(showSaveNotice._timer);
+  showSaveNotice._timer = setTimeout(function() {
+    notice.textContent = "";
+    notice.classList.remove("error");
+  }, 2200);
+}
+
+function saveChar() {
+  if (window.APP_CONFIG && APP_CONFIG.canPersist && APP_CONFIG.saveUrl) {
+    fetch(APP_CONFIG.saveUrl, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(buildSaveState())
+    })
+      .then(function(r) {
+        if (!r.ok) throw new Error("save_failed");
+        return r.json();
+      })
+      .then(function() {
+        showSaveNotice("Сохранено");
+      })
+      .catch(function() {
+        showSaveNotice("Не удалось сохранить", true);
+      });
+    return;
+  }
+  exportChar();
+}
+
+var fileInput = document.getElementById("fileIn");
+if (fileInput) fileInput.addEventListener("change", function(e) {
   var file = e.target.files[0];
   if (!file) return;
   var reader = new FileReader();
@@ -152,7 +192,8 @@ document.getElementById("fileIn").addEventListener("change", function(e) {
         var eb = document.getElementById("editBtn");
         eb.textContent = "Правка";
         eb.classList.remove("active");
-        document.getElementById("rollBtn").disabled = false;
+        var rollBtnEl = document.getElementById("rollBtn");
+        if (rollBtnEl) rollBtnEl.disabled = false;
       }
       renderAll();
     } catch(err) {

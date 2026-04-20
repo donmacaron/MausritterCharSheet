@@ -1,7 +1,28 @@
-from flask import Flask, render_template, jsonify
+import json
 import random
+import sqlite3
+from datetime import datetime
+from functools import wraps
+from pathlib import Path
+
+from flask import (
+    Flask,
+    flash,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
+from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
+app.config["DATABASE"] = str(Path(app.root_path) / "mausritter.db")
+app.config["SECRET_KEY"] = "mausritter-dev-secret-change-me"
+
+MOUSE_EMOJIS = ["🐭", "🐁", "🐀"]
 
 GIVEN_NAMES = [
     "Агата","Агнес","Ада","Азалия","Алоэ","Амброзия","Беладонна","Берёза","Бикса","Бри",
@@ -207,17 +228,542 @@ def generate():
         bag=bag_items,
     )
 
+def utcnow():
+    return datetime.utcnow().isoformat(timespec="seconds")
+
+
+def get_db():
+    if "db" not in g:
+        g.db = sqlite3.connect(app.config["DATABASE"])
+        g.db.row_factory = sqlite3.Row
+        g.db.execute("PRAGMA foreign_keys = ON")
+    return g.db
+
+
+@app.teardown_appcontext
+def close_db(_error):
+    db = g.pop("db", None)
+    if db is not None:
+        db.close()
+
+
+def init_db():
+    db = sqlite3.connect(app.config["DATABASE"])
+    try:
+        db.execute("PRAGMA foreign_keys = ON")
+        db.executescript(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL,
+                is_superuser INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS characters (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                name TEXT NOT NULL,
+                background TEXT NOT NULL,
+                emoji TEXT NOT NULL,
+                character_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            """
+        )
+        admin_exists = db.execute(
+            "SELECT id FROM users WHERE username = ?", ("admin",)
+        ).fetchone()
+        if not admin_exists:
+            now = utcnow()
+            db.execute(
+                """
+                INSERT INTO users (username, password_hash, is_superuser, created_at, updated_at)
+                VALUES (?, ?, 1, ?, ?)
+                """,
+                ("admin", generate_password_hash("FUCK"), now, now),
+            )
+        db.commit()
+    finally:
+        db.close()
+
+
+def query_one(sql, params=()):
+    return get_db().execute(sql, params).fetchone()
+
+
+def query_all(sql, params=()):
+    return get_db().execute(sql, params).fetchall()
+
+
+def execute(sql, params=()):
+    db = get_db()
+    cur = db.execute(sql, params)
+    db.commit()
+    return cur
+
+
+def current_user():
+    user_id = session.get("user_id")
+    if not user_id:
+        return None
+    return query_one(
+        "SELECT id, username, is_superuser, created_at, updated_at FROM users WHERE id = ?",
+        (user_id,),
+    )
+
+
+@app.context_processor
+def inject_user():
+    return {"current_user": current_user()}
+
+
+def login_user(user_row):
+    session.clear()
+    session["user_id"] = user_row["id"]
+    session["is_superuser"] = int(user_row["is_superuser"])
+
+
+def logout_user():
+    session.clear()
+
+
+def login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not current_user():
+            flash("Сначала войдите в аккаунт.", "error")
+            return redirect(url_for("login"))
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def superuser_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        user = current_user()
+        if not user:
+            flash("Сначала войдите в аккаунт.", "error")
+            return redirect(url_for("login"))
+        if not user["is_superuser"]:
+            flash("У вас нет доступа к этой странице.", "error")
+            return redirect(url_for("account"))
+        return view(*args, **kwargs)
+
+    return wrapped
+
+
+def redirect_authenticated_user():
+    if current_user():
+        return redirect(url_for("account"))
+    return None
+
+
+def build_initial_state(character):
+    state = {
+        "v": 1,
+        "meta": {
+            "name": character.get("name", ""),
+            "background": character.get("background", ""),
+            "birthsign": character.get("birthsign", ""),
+            "disposition": character.get("disposition", ""),
+            "coat": character.get("coat", ""),
+            "physical_detail": character.get("physical_detail", ""),
+            "pips": character.get("pips", 0),
+        },
+        "statMax": {
+            "str": character.get("str_val", 0),
+            "dex": character.get("dex_val", 0),
+            "wil": character.get("wil_val", 0),
+            "hp": character.get("hp", 0),
+            "end": character.get("endurance_max", 0),
+        },
+        "statCur": {
+            "str": character.get("str_val", 0),
+            "dex": character.get("dex_val", 0),
+            "wil": character.get("wil_val", 0),
+            "hp": character.get("hp", 0),
+            "end": 0,
+        },
+        "cardMap": {
+            "eq_main": (character.get("equipped") or {}).get("main_hand"),
+            "eq_off": (character.get("equipped") or {}).get("off_hand"),
+            "eq_arm1": (character.get("equipped") or {}).get("armor1"),
+            "eq_arm2": (character.get("equipped") or {}).get("armor2"),
+        },
+        "usage": {},
+    }
+    bag = character.get("bag") or []
+    for index in range(9):
+        state["cardMap"][f"b{index}"] = bag[index] if index < len(bag) else None
+    for index in range(6):
+        state["cardMap"][f"en{index}"] = None
+    for key in state["cardMap"]:
+        state["usage"][key] = 0
+    return state
+
+
+def create_character_for_user(user_id):
+    character = generate()
+    state = build_initial_state(character)
+    now = utcnow()
+    cur = execute(
+        """
+        INSERT INTO characters (user_id, name, background, emoji, character_json, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            state["meta"]["name"],
+            state["meta"]["background"],
+            random.choice(MOUSE_EMOJIS),
+            json.dumps(state, ensure_ascii=False),
+            now,
+            now,
+        ),
+    )
+    return cur.lastrowid
+
+
+def get_character_or_404(character_id, allow_admin=False):
+    user = current_user()
+    row = query_one(
+        """
+        SELECT c.*, u.username
+        FROM characters c
+        JOIN users u ON u.id = c.user_id
+        WHERE c.id = ?
+        """,
+        (character_id,),
+    )
+    if not row:
+        return None
+    if user and row["user_id"] == user["id"]:
+        return row
+    if allow_admin and user and user["is_superuser"]:
+        return row
+    return None
+
+
+def parse_character_payload(raw_payload):
+    try:
+        payload = json.loads(raw_payload)
+    except json.JSONDecodeError:
+        return None
+    required = {"v", "meta", "statMax", "statCur", "cardMap", "usage"}
+    if not required.issubset(payload.keys()):
+        return None
+    meta = payload.get("meta") or {}
+    if not meta.get("name") or not meta.get("background"):
+        return None
+    return payload
+
+
 @app.route("/")
-def index():
-    return render_template("index.html", character=generate())
+def landing():
+    redirect_response = redirect_authenticated_user()
+    if redirect_response:
+        return redirect_response
+    return render_template("landing.html")
+
+
+@app.route("/guest")
+def guest_sheet():
+    redirect_response = redirect_authenticated_user()
+    if redirect_response:
+        return redirect_response
+    return render_template(
+        "index.html",
+        character=generate(),
+        page_mode="guest",
+        save_label="💾 Скачать JSON",
+        page_title="Mausritter",
+    )
+
 
 @app.route("/roll")
 def roll_route():
     return jsonify(generate())
 
+
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    redirect_response = redirect_authenticated_user()
+    if redirect_response:
+        return redirect_response
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        if not username or not password:
+            flash("Имя пользователя и пароль обязательны.", "error")
+        elif query_one("SELECT id FROM users WHERE username = ?", (username,)):
+            flash("Пользователь с таким именем уже существует.", "error")
+        else:
+            now = utcnow()
+            execute(
+                """
+                INSERT INTO users (username, password_hash, is_superuser, created_at, updated_at)
+                VALUES (?, ?, 0, ?, ?)
+                """,
+                (username, generate_password_hash(password), now, now),
+            )
+            user = query_one(
+                "SELECT id, username, is_superuser FROM users WHERE username = ?",
+                (username,),
+            )
+            login_user(user)
+            flash("Аккаунт создан.", "success")
+            return redirect(url_for("account"))
+    return render_template(
+        "auth.html",
+        mode="signup",
+        title="Создать аккаунт",
+        submit_label="Создать аккаунт",
+    )
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    redirect_response = redirect_authenticated_user()
+    if redirect_response:
+        return redirect_response
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        user = query_one("SELECT * FROM users WHERE username = ?", (username,))
+        if not user or not check_password_hash(user["password_hash"], password):
+            flash("Неверные логин или пароль.", "error")
+        else:
+            login_user(user)
+            flash("Вы вошли в систему.", "success")
+            return redirect(url_for("account"))
+    return render_template(
+        "auth.html",
+        mode="login",
+        title="Войти",
+        submit_label="Войти",
+    )
+
+
+@app.route("/logout", methods=["POST"])
+@login_required
+def logout():
+    logout_user()
+    flash("Вы вышли из системы.", "success")
+    return redirect(url_for("landing"))
+
+
+@app.route("/account")
+@login_required
+def account():
+    user = current_user()
+    characters = query_all(
+        """
+        SELECT id, name, background, emoji, created_at, updated_at
+        FROM characters
+        WHERE user_id = ?
+        ORDER BY updated_at DESC, id DESC
+        """,
+        (user["id"],),
+    )
+    return render_template("account.html", user=user, characters=characters)
+
+
+@app.route("/account/password", methods=["POST"])
+@login_required
+def change_password():
+    user = query_one("SELECT * FROM users WHERE id = ?", (session["user_id"],))
+    current_password = request.form.get("current_password", "")
+    new_password = request.form.get("new_password", "")
+    confirm_password = request.form.get("confirm_password", "")
+    if not check_password_hash(user["password_hash"], current_password):
+        flash("Текущий пароль введён неверно.", "error")
+    elif not new_password:
+        flash("Новый пароль не может быть пустым.", "error")
+    elif new_password != confirm_password:
+        flash("Подтверждение пароля не совпадает.", "error")
+    else:
+        execute(
+            "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?",
+            (generate_password_hash(new_password), utcnow(), user["id"]),
+        )
+        flash("Пароль обновлён.", "success")
+    return redirect(url_for("account"))
+
+
+@app.route("/characters/new", methods=["POST"])
+@login_required
+def create_character():
+    character_id = create_character_for_user(session["user_id"])
+    flash("Новая мышь создана.", "success")
+    return redirect(url_for("character_detail", character_id=character_id))
+
+
+@app.route("/characters/<int:character_id>")
+@login_required
+def character_detail(character_id):
+    row = get_character_or_404(character_id, allow_admin=True)
+    if not row:
+        flash("Персонаж не найден.", "error")
+        return redirect(url_for("account"))
+    state = json.loads(row["character_json"])
+    is_owner = row["user_id"] == session["user_id"]
+    return render_template(
+        "index.html",
+        character=state,
+        page_mode="account",
+        save_label="💾 Сохранить в аккаунт",
+        page_title=row["name"],
+        character_row=row,
+        is_owner=is_owner,
+    )
+
+
+@app.route("/characters/<int:character_id>/save", methods=["POST"])
+@login_required
+def save_character(character_id):
+    row = get_character_or_404(character_id, allow_admin=True)
+    if not row:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    if row["user_id"] != session["user_id"]:
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+    payload = request.get_json(silent=True) or {}
+    state = parse_character_payload(json.dumps(payload, ensure_ascii=False))
+    if not state:
+        return jsonify({"ok": False, "error": "invalid_payload"}), 400
+    execute(
+        """
+        UPDATE characters
+        SET name = ?, background = ?, character_json = ?, updated_at = ?
+        WHERE id = ?
+        """,
+        (
+            state["meta"]["name"],
+            state["meta"]["background"],
+            json.dumps(state, ensure_ascii=False),
+            utcnow(),
+            character_id,
+        ),
+    )
+    return jsonify({"ok": True, "name": state["meta"]["name"]})
+
+
+@app.route("/characters/<int:character_id>/delete", methods=["POST"])
+@login_required
+def delete_character(character_id):
+    row = get_character_or_404(character_id, allow_admin=True)
+    if not row:
+        flash("Персонаж не найден.", "error")
+        return redirect(url_for("account"))
+    if row["user_id"] != session["user_id"] and not session.get("is_superuser"):
+        flash("Нельзя удалить чужого персонажа.", "error")
+        return redirect(url_for("account"))
+    execute("DELETE FROM characters WHERE id = ?", (character_id,))
+    flash("Персонаж удалён.", "success")
+    if session.get("is_superuser") and row["user_id"] != session["user_id"]:
+        return redirect(url_for("admin_user_detail", user_id=row["user_id"]))
+    return redirect(url_for("account"))
+
+
+@app.route("/admin")
+@superuser_required
+def admin_dashboard():
+    users = query_all(
+        """
+        SELECT u.id, u.username, u.is_superuser, u.created_at, u.updated_at,
+               COUNT(c.id) AS character_count
+        FROM users u
+        LEFT JOIN characters c ON c.user_id = u.id
+        GROUP BY u.id
+        ORDER BY u.is_superuser DESC, u.username COLLATE NOCASE
+        """
+    )
+    stats = {
+        "users": query_one("SELECT COUNT(*) AS total FROM users")["total"],
+        "characters": query_one("SELECT COUNT(*) AS total FROM characters")["total"],
+    }
+    return render_template("admin.html", users=users, stats=stats)
+
+
+@app.route("/admin/users/<int:user_id>")
+@superuser_required
+def admin_user_detail(user_id):
+    user = query_one(
+        "SELECT id, username, is_superuser, created_at, updated_at FROM users WHERE id = ?",
+        (user_id,),
+    )
+    if not user:
+        flash("Пользователь не найден.", "error")
+        return redirect(url_for("admin_dashboard"))
+    characters = query_all(
+        """
+        SELECT id, name, background, emoji, created_at, updated_at
+        FROM characters
+        WHERE user_id = ?
+        ORDER BY updated_at DESC, id DESC
+        """,
+        (user_id,),
+    )
+    return render_template("admin_user.html", managed_user=user, characters=characters)
+
+
+@app.route("/admin/users/<int:user_id>/password-reset", methods=["POST"])
+@superuser_required
+def admin_reset_password(user_id):
+    user = query_one("SELECT id, username FROM users WHERE id = ?", (user_id,))
+    if not user:
+        flash("Пользователь не найден.", "error")
+    else:
+        new_password = request.form.get("new_password", "")
+        if not new_password:
+            flash("Новый пароль не может быть пустым.", "error")
+        else:
+            execute(
+                "UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?",
+                (generate_password_hash(new_password), utcnow(), user_id),
+            )
+            flash(f"Пароль пользователя {user['username']} обновлён.", "success")
+    return redirect(url_for("admin_user_detail", user_id=user_id))
+
+
+@app.route("/admin/users/<int:user_id>/delete", methods=["POST"])
+@superuser_required
+def admin_delete_user(user_id):
+    if user_id == session["user_id"]:
+        flash("Нельзя удалить самого себя.", "error")
+        return redirect(url_for("admin_user_detail", user_id=user_id))
+    user = query_one("SELECT id, username FROM users WHERE id = ?", (user_id,))
+    if not user:
+        flash("Пользователь не найден.", "error")
+    else:
+        execute("DELETE FROM users WHERE id = ?", (user_id,))
+        flash(f"Пользователь {user['username']} удалён.", "success")
+    return redirect(url_for("admin_dashboard"))
+
+
+@app.route("/admin/characters/<int:character_id>/delete", methods=["POST"])
+@superuser_required
+def admin_delete_character(character_id):
+    row = query_one("SELECT id, user_id, name FROM characters WHERE id = ?", (character_id,))
+    if not row:
+        flash("Персонаж не найден.", "error")
+        return redirect(url_for("admin_dashboard"))
+    execute("DELETE FROM characters WHERE id = ?", (character_id,))
+    flash(f"Персонаж {row['name']} удалён.", "success")
+    return redirect(url_for("admin_user_detail", user_id=row["user_id"]))
+
+
 @app.route("/spells")
 def spells():
     return render_template("spells.html")
+
+
+init_db()
 
 if __name__ == "__main__":
     print("Mausritter -> http://localhost:5000")
