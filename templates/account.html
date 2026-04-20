@@ -20,7 +20,7 @@
       <p class="eyebrow">Персонажи</p>
       <h2>Мои мыши</h2>
     </div>
-    <span class="muted-note" id="deletionHint" style="white-space:nowrap">Обычный режим: клик по строке открывает лист персонажа.</span>
+    <span class="muted-note" id="deletionHint" style="white-space:nowrap">клик по строке открывает лист персонажа.</span>
   </div>
 
   {% if characters %}
@@ -37,7 +37,13 @@
       <tbody>
         {% for character in characters %}
         <tr class="character-row" data-href="{{ url_for('character_detail', character_id=character.id) }}">
-          <td class="emoji-cell">{{ character.emoji }}</td>
+          <td class="portrait-cell">
+            {% if character.portrait_filename %}
+              <img src="/portraits/{{ character.id }}/char_{{ character.id }}_thumb.jpg" alt="Портрет" class="portrait-thumb portrait-img" data-character-id="{{ character.id }}" data-portrait-filename="{{ character.portrait_filename }}" style="cursor: pointer;">
+            {% else %}
+              <span class="emoji">{{ character.emoji }}</span>
+            {% endif %}
+          </td>
           <td>{{ character.name }}</td>
           <td>{{ character.background }}</td>
           <td class="delete-col">
@@ -55,7 +61,66 @@
   {% endif %}
 </div>
 
+<style>
+#portraitModalAccount {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  z-index: 2000;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+#portraitModalAccount.open {
+  display: flex;
+}
+#portraitModalAccount .close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  cursor: pointer;
+  z-index: 2001;
+  border-radius: 4px;
+}
+#portraitModalAccount .close-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+#portraitModalAccount img {
+  max-width: 95vw;
+  max-height: 80vh;
+  object-fit: contain;
+  margin-bottom: 20px;
+}
+</style>
+
+<!-- Модальное окно просмотра портрета -->
+<div id="portraitModalAccount">
+  <button class="close-btn" onclick="closePortraitViewModalAccount()">&times;</button>
+  <img id="portraitImageAccount" src="" alt="Портрет">
+</div>
+
 <script>
+function openPortraitViewModalAccount(characterId) {
+  var displayUrl = '/portraits/' + characterId + '/char_' + characterId + '_display.jpg';
+  document.getElementById('portraitImageAccount').src = displayUrl;
+  document.getElementById('portraitModalAccount').dataset.characterId = characterId;
+  document.getElementById('portraitModalAccount').classList.add('open');
+}
+
+function closePortraitViewModalAccount() {
+  document.getElementById('portraitModalAccount').classList.remove('open');
+}
+
 document.addEventListener("DOMContentLoaded", function() {
   var panel = document.getElementById("characterListPanel");
   var toggle = document.getElementById("deletionToggle");
@@ -66,6 +131,13 @@ document.addEventListener("DOMContentLoaded", function() {
     row.addEventListener("click", function(event) {
       if (panel.classList.contains("deletion-mode")) return;
       if (event.target.closest("form") || event.target.closest("button")) return;
+      // Клик на портрет — открываем модальное окно
+      if (event.target.classList.contains("portrait-img")) {
+        event.stopPropagation();
+        var characterId = event.target.getAttribute("data-character-id");
+        openPortraitViewModalAccount(characterId);
+        return;
+      }
       window.location.href = row.getAttribute("data-href");
     });
   });

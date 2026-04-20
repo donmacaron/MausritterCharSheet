@@ -63,7 +63,11 @@ function initFromSavedState(state) {
   statCur = state.statCur || {str: 0, dex: 0, wil: 0, hp: 0, end: 0};
   weaponMode = {};
   if (cardMap.eq_main && cardMap.eq_main.type === "weapon") {
-    weaponMode.eq_main = (cardMap.eq_main.weight === "С‚СЏР¶С‘Р»РѕРµ" || (cardMap.eq_off && cardMap.eq_off.placeholder && cardMap.eq_off.linkedTo === "eq_main")) ? 2 : 1;
+    weaponMode.eq_main = (cardMap.eq_main.weight === "тяжёлое" || (cardMap.eq_off && cardMap.eq_off.placeholder && cardMap.eq_off.linkedTo === "eq_main")) ? 2 : 1;
+    // Если тяжёлое оружие в основной лапе, но нет плейсхолдера во второй - создать его
+    if (cardMap.eq_main.weight === "тяжёлое" && !cardMap.eq_off) {
+      cardMap.eq_off = {placeholder: true, linkedTo: "eq_main"};
+    }
   }
 }
 

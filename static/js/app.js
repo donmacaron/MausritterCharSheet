@@ -14,6 +14,12 @@ if (window.APP_CONFIG && !APP_CONFIG.isGuest) {
   if (fileInput) fileInput.style.display = "none";
   var rollMenuButton = document.querySelector('.menu-btn.roll-btn');
   if (rollMenuButton) rollMenuButton.style.display = "none";
+  
+  // Показать кнопку портрета в account режиме
+  var portraitBtn = document.getElementById("portraitBtn");
+  if (portraitBtn) {
+    portraitBtn.style.display = "block";
+  }
 }
 
 // Инициализируем кнопку "Ещё раз" в очень сером состоянии

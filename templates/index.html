@@ -46,6 +46,7 @@
   <button class="menu-btn edit-btn" id="editBtn" onclick="toggleEdit();toggleMenu()">Правка</button>
   <button class="menu-btn roll-btn" id="rollBtn" onclick="rollNew()">Ещё раз</button>
   <button class="menu-btn" onclick="openSpells();toggleMenu()" title="Гримуар">📖 Гримуар</button>
+  <button class="menu-btn portrait-btn" id="portraitBtn" onclick="openPortraitMenu();toggleMenu()" title="Портрет">🖼️ Портрет</button>
   <button class="menu-btn" onclick="openMagic();toggleMenu()" title="Правила магии">✨ Магия</button>
   <button class="menu-btn" onclick="openRest();toggleMenu()" title="Отдых">😴 Отдых</button>
   <button class="menu-btn" onclick="openDevelopment();toggleMenu()" title="Развитие">⬆️ Развитие</button>
@@ -87,7 +88,8 @@ window.APP_CONFIG = {
   saveLabel: {{ save_label | tojson }},
   saveUrl: {{ (url_for('save_character', character_id=character_row.id) if character_row else None) | tojson }},
   canPersist: {{ (page_mode == "account" and is_owner) | tojson }},
-  isGuest: {{ (page_mode == "guest") | tojson }}
+  isGuest: {{ (page_mode == "guest") | tojson }},
+  portraitUrl: {{ (url_for('serve_portrait', character_id=character_row.id, filename=character_row.portrait_filename) if character_row and character_row.portrait_filename else None) | tojson }}
 };
 </script>
 <script src="{{ url_for('static', filename='js/core.js') }}"></script>
@@ -473,6 +475,43 @@ window.APP_CONFIG = {
     <div class="select-buttons">
       <button class="select-btn" onclick="closeSelectModal()">Отмена</button>
     </div>
+  </div>
+</div>
+
+<!-- Portrait Upload Modal -->
+<div class="modal-overlay" id="portraitUploadModal" onclick="if(event.target===this) closePortraitUploadModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closePortraitUploadModal()">&times;</button>
+    <h3>Загрузить портрет</h3>
+    <p style="font-size:0.9rem;color:var(--text-dim);margin-bottom:16px">Поддерживаются форматы: JPG, PNG, GIF, WebP (максимум 10MB)</p>
+    <input type="file" id="portraitFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="margin-bottom:12px">
+    <div id="portraitUploadError" style="color:#d32f2f;font-size:0.9rem;margin-bottom:8px;display:none"></div>
+    <button class="modal-add-btn" onclick="uploadPortrait()" style="width:100%;margin-bottom:8px">Загрузить</button>
+    <button class="select-btn" onclick="closePortraitUploadModal()">Отмена</button>
+  </div>
+</div>
+
+<!-- Portrait View Modal (fullscreen) -->
+<div class="portrait-view-modal" id="portraitViewModal">
+  <button class="portrait-close" onclick="closePortraitViewModal()">&times;</button>
+  <div class="portrait-view-container">
+    <img id="portraitImage" src="" alt="Портрет мыши" class="portrait-image">
+  </div>
+  <div class="portrait-view-footer">
+    <button class="portrait-change-btn" onclick="openPortraitChangeModal()">🖼️ Сменить портрет</button>
+  </div>
+</div>
+
+<!-- Portrait Change Modal (overlay modal) -->
+<div class="modal-overlay" id="portraitChangeModal" onclick="if(event.target===this) closePortraitChangeModal()">
+  <div class="modal">
+    <button class="modal-close" onclick="closePortraitChangeModal()">&times;</button>
+    <h3>Сменить портрет</h3>
+    <p style="font-size:0.9rem;color:var(--text-dim);margin-bottom:16px">Выберите новое изображение</p>
+    <input type="file" id="portraitChangeFileInput" accept="image/jpeg,image/png,image/gif,image/webp" style="margin-bottom:12px">
+    <div id="portraitChangeError" style="color:#d32f2f;font-size:0.9rem;margin-bottom:8px;display:none"></div>
+    <button class="modal-add-btn" onclick="uploadPortraitChange()" style="width:100%;margin-bottom:8px">Загрузить</button>
+    <button class="select-btn" onclick="closePortraitChangeModal()">Отмена</button>
   </div>
 </div>
 

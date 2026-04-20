@@ -4,7 +4,10 @@ import sqlite3
 from datetime import datetime
 from functools import wraps
 from pathlib import Path
+import os
+import shutil
 
+from PIL import Image
 from flask import (
     Flask,
     flash,
@@ -15,12 +18,20 @@ from flask import (
     request,
     session,
     url_for,
+    send_from_directory,
 )
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 app.config["DATABASE"] = str(Path(app.root_path) / "mausritter.db")
 app.config["SECRET_KEY"] = "mausritter-dev-secret-change-me"
+
+# Портреты: конфигурация
+UPLOAD_DIR = Path(app.root_path) / "static" / "uploads" / "portraits"
+ALLOWED_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
+MAX_UPLOAD_SIZE = 10 * 1024 * 1024  # 10MB
+DISPLAY_WIDTH = 2000
+THUMB_WIDTH = 80
 
 MOUSE_EMOJIS = ["🐭", "🐁", "🐀"]
 
@@ -269,12 +280,21 @@ def init_db():
                 background TEXT NOT NULL,
                 emoji TEXT NOT NULL,
                 character_json TEXT NOT NULL,
+                portrait_filename TEXT,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
             );
             """
         )
+        # Проверить, есть ли колонка portrait_filename, если нет - добавить
+        try:
+            db.execute("ALTER TABLE characters ADD COLUMN portrait_filename TEXT;")
+        except:
+            pass  # Колонка уже существует
+        db.commit()
+        
+        # Проверить и создать условия для admin пользователя
         admin_exists = db.execute(
             "SELECT id FROM users WHERE username = ?", ("admin",)
         ).fetchone()
@@ -430,6 +450,68 @@ def create_character_for_user(user_id):
     return cur.lastrowid
 
 
+def process_portrait(image_file, character_id):
+    """
+    Обработать загруженный портрет: создать display (до 2000px) и thumbnail (80px).
+    Возвращает (display_filename, thumb_filename) или (None, None) при ошибке.
+    """
+    try:
+        # Валидация расширения
+        if "." not in image_file.filename:
+            return None, None
+        ext = image_file.filename.rsplit(".", 1)[1].lower()
+        if ext not in ALLOWED_EXTENSIONS:
+            return None, None
+        
+        # Создать папку для персонажа
+        char_dir = UPLOAD_DIR / f"char_{character_id}"
+        char_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Удалить старые файлы если есть
+        for f in char_dir.glob("*"):
+            f.unlink()
+        
+        # Открыть изображение
+        img = Image.open(image_file)
+        
+        # Если формат имеет прозрачность, конвертировать в RGB
+        if img.mode in ("RGBA", "LA", "P"):
+            rgb_img = Image.new("RGB", img.size, (255, 255, 255))
+            rgb_img.paste(img, mask=img.split()[-1] if img.mode == "RGBA" else None)
+            img = rgb_img
+        elif img.mode != "RGB":
+            img = img.convert("RGB")
+        
+        # Сохранить оригинал
+        original_path = char_dir / "original.jpg"
+        img.save(original_path, "JPEG", quality=95)
+        
+        # Создать display версию (до 2000px по широкой стороне)
+        display_img = img.copy()
+        max_size = max(display_img.size)
+        if max_size > DISPLAY_WIDTH:
+            ratio = DISPLAY_WIDTH / max_size
+            new_size = (int(display_img.width * ratio), int(display_img.height * ratio))
+            display_img.thumbnail(new_size, Image.Resampling.LANCZOS)
+        
+        display_filename = f"char_{character_id}_display.jpg"
+        display_path = char_dir / display_filename
+        display_img.save(display_path, "JPEG", quality=85)
+        
+        # Создать thumbnail (80px по широкой стороне)
+        thumb_img = img.copy()
+        thumb_img.thumbnail((THUMB_WIDTH, THUMB_WIDTH), Image.Resampling.LANCZOS)
+        
+        thumb_filename = f"char_{character_id}_thumb.jpg"
+        thumb_path = char_dir / thumb_filename
+        thumb_img.save(thumb_path, "JPEG", quality=80)
+        
+        return display_filename, thumb_filename
+    except Exception as e:
+        print(f"Error processing portrait: {e}")
+        return None, None
+
+
 def get_character_or_404(character_id, allow_admin=False):
     user = current_user()
     row = query_one(
@@ -564,7 +646,7 @@ def account():
     user = current_user()
     characters = query_all(
         """
-        SELECT id, name, background, emoji, created_at, updated_at
+        SELECT id, name, background, emoji, portrait_filename, created_at, updated_at
         FROM characters
         WHERE user_id = ?
         ORDER BY updated_at DESC, id DESC
@@ -653,6 +735,80 @@ def save_character(character_id):
     return jsonify({"ok": True, "name": state["meta"]["name"]})
 
 
+@app.route("/characters/<int:character_id>/portrait/upload", methods=["POST"])
+@login_required
+def upload_portrait(character_id):
+    row = get_character_or_404(character_id, allow_admin=True)
+    if not row:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    if row["user_id"] != session["user_id"] and not session.get("is_superuser"):
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+    
+    # Проверить наличие файла
+    if "portrait" not in request.files:
+        return jsonify({"ok": False, "error": "no_file"}), 400
+    
+    file = request.files["portrait"]
+    if file.filename == "":
+        return jsonify({"ok": False, "error": "no_file"}), 400
+    
+    # Валидация размера
+    file.seek(0, 2)  # Seek to end
+    file_size = file.tell()
+    file.seek(0)  # Seek back to start
+    
+    if file_size > MAX_UPLOAD_SIZE:
+        return jsonify({"ok": False, "error": "file_too_large"}), 400
+    
+    # Обработать портрет
+    display_filename, thumb_filename = process_portrait(file, character_id)
+    
+    if not display_filename or not thumb_filename:
+        return jsonify({"ok": False, "error": "processing_failed"}), 400
+    
+    # Обновить БД
+    execute(
+        "UPDATE characters SET portrait_filename = ?, updated_at = ? WHERE id = ?",
+        (display_filename, utcnow(), character_id),
+    )
+    
+    # Построить URLs
+    char_dir = f"uploads/portraits/char_{character_id}"
+    display_url = f"/static/{char_dir}/{display_filename}"
+    thumb_url = f"/static/{char_dir}/{thumb_filename}"
+    
+    return jsonify({
+        "ok": True,
+        "display_url": display_url,
+        "thumb_url": thumb_url,
+        "display_filename": display_filename,
+        "thumb_filename": thumb_filename
+    })
+
+
+@app.route("/characters/<int:character_id>/portrait", methods=["DELETE"])
+@login_required
+def delete_portrait(character_id):
+    row = get_character_or_404(character_id, allow_admin=True)
+    if not row:
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    if row["user_id"] != session["user_id"] and not session.get("is_superuser"):
+        return jsonify({"ok": False, "error": "forbidden"}), 403
+    
+    # Удалить файлы
+    char_dir = UPLOAD_DIR / f"char_{character_id}"
+    if char_dir.exists():
+        shutil.rmtree(char_dir)
+    
+    # Обновить БД
+    execute(
+        "UPDATE characters SET portrait_filename = NULL, updated_at = ? WHERE id = ?",
+        (utcnow(), character_id),
+    )
+    
+    return jsonify({"ok": True})
+
+
 @app.route("/characters/<int:character_id>/delete", methods=["POST"])
 @login_required
 def delete_character(character_id):
@@ -663,6 +819,12 @@ def delete_character(character_id):
     if row["user_id"] != session["user_id"] and not session.get("is_superuser"):
         flash("Нельзя удалить чужого персонажа.", "error")
         return redirect(url_for("account"))
+    
+    # Удалить портрет если есть
+    char_dir = UPLOAD_DIR / f"char_{character_id}"
+    if char_dir.exists():
+        shutil.rmtree(char_dir)
+    
     execute("DELETE FROM characters WHERE id = ?", (character_id,))
     flash("Персонаж удалён.", "success")
     if session.get("is_superuser") and row["user_id"] != session["user_id"]:
@@ -756,6 +918,22 @@ def admin_delete_character(character_id):
     execute("DELETE FROM characters WHERE id = ?", (character_id,))
     flash(f"Персонаж {row['name']} удалён.", "success")
     return redirect(url_for("admin_user_detail", user_id=row["user_id"]))
+
+
+@app.route("/portraits/<int:character_id>/<filename>")
+def serve_portrait(character_id, filename):
+    char_dir = UPLOAD_DIR / f"char_{character_id}"
+    print(f"DEBUG: serve_portrait called: character_id={character_id}, filename={filename}, char_dir={char_dir}")
+    if not char_dir.exists():
+        print(f"DEBUG: char_dir does not exist: {char_dir}")
+        return "Not found", 404
+    file_path = char_dir / filename
+    print(f"DEBUG: checking file_path={file_path}, exists={file_path.exists()}")
+    if not file_path.exists():
+        print(f"DEBUG: file does not exist")
+        return "Not found", 404
+    print(f"DEBUG: serving file from {char_dir}")
+    return send_from_directory(str(char_dir), filename)
 
 
 @app.route("/spells")

@@ -457,3 +457,130 @@ document.addEventListener("click", function(e) {
   var enduranceModal = document.getElementById("enduranceModal");
   if (e.target === enduranceModal) closeEndurance();
 });
+
+// ── Portrait Functions ──────────────────────────────────────────────────
+function openPortraitMenu() {
+  // Если уже есть портрет, открыть просмотр, иначе загрузку
+  if (window.APP_CONFIG && APP_CONFIG.portraitUrl) {
+    openPortraitViewModal();
+  } else {
+    openPortraitUploadModal();
+  }
+}
+
+function openPortraitUploadModal() {
+  document.getElementById("portraitUploadModal").classList.add("open");
+  document.getElementById("portraitUploadError").style.display = "none";
+  document.getElementById("portraitUploadError").textContent = "";
+  document.getElementById("portraitFileInput").value = "";
+}
+
+function closePortraitUploadModal() {
+  document.getElementById("portraitUploadModal").classList.remove("open");
+}
+
+function openPortraitViewModal() {
+  var viewModal = document.getElementById("portraitViewModal");
+  var viewImg = document.getElementById("portraitImage");
+  if (window.APP_CONFIG && APP_CONFIG.portraitUrl) {
+    viewImg.src = APP_CONFIG.portraitUrl + "?t=" + Date.now();
+    viewModal.classList.add("open");
+  }
+}
+
+function closePortraitViewModal() {
+  document.getElementById("portraitViewModal").classList.remove("open");
+}
+
+function openPortraitChangeModal() {
+  document.getElementById("portraitChangeModal").classList.add("open");
+  document.getElementById("portraitChangeError").style.display = "none";
+  document.getElementById("portraitChangeError").textContent = "";
+  document.getElementById("portraitChangeFileInput").value = "";
+}
+
+function closePortraitChangeModal() {
+  document.getElementById("portraitChangeModal").classList.remove("open");
+}
+
+function uploadPortrait() {
+  var fileInput = document.getElementById("portraitFileInput");
+  var file = fileInput.files[0];
+  var errorDiv = document.getElementById("portraitUploadError");
+  errorDiv.style.display = "none";
+
+  if (!file) {
+    errorDiv.textContent = "Выберите файл";
+    errorDiv.style.display = "block";
+    return;
+  }
+
+  var formData = new FormData();
+  formData.append("portrait", file);
+
+  fetch(APP_CONFIG.saveUrl.replace("/save", "/portrait/upload"), {
+    method: "POST",
+    body: formData
+  })
+    .then(function(r) {
+      if (!r.ok) throw new Error("upload_failed");
+      return r.json();
+    })
+    .then(function(data) {
+      if (!data.ok) throw new Error(data.error || "unknown_error");
+      APP_CONFIG.portraitUrl = data.display_url;
+      showSaveNotice("Портрет загружен");
+      closePortraitUploadModal();
+      // Обновить кнопку портрета на видимости
+      updatePortraitButtonState();
+    })
+    .catch(function(err) {
+      errorDiv.textContent = "Ошибка загрузки. Проверьте файл и размер.";
+      errorDiv.style.display = "block";
+    });
+}
+
+function uploadPortraitChange() {
+  var fileInput = document.getElementById("portraitChangeFileInput");
+  var file = fileInput.files[0];
+  var errorDiv = document.getElementById("portraitChangeError");
+  errorDiv.style.display = "none";
+
+  if (!file) {
+    errorDiv.textContent = "Выберите файл";
+    errorDiv.style.display = "block";
+    return;
+  }
+
+  var formData = new FormData();
+  formData.append("portrait", file);
+
+  fetch(APP_CONFIG.saveUrl.replace("/save", "/portrait/upload"), {
+    method: "POST",
+    body: formData
+  })
+    .then(function(r) {
+      if (!r.ok) throw new Error("upload_failed");
+      return r.json();
+    })
+    .then(function(data) {
+      if (!data.ok) throw new Error(data.error || "unknown_error");
+      APP_CONFIG.portraitUrl = data.display_url;
+      // Обновить изображение в модали просмотра
+      document.getElementById("portraitImage").src = APP_CONFIG.portraitUrl + "?t=" + Date.now();
+      showSaveNotice("Портрет изменен");
+      closePortraitChangeModal();
+    })
+    .catch(function(err) {
+      errorDiv.textContent = "Ошибка загрузки. Проверьте файл и размер.";
+      errorDiv.style.display = "block";
+    });
+}
+
+function updatePortraitButtonState() {
+  var portraitBtn = document.getElementById("portraitBtn");
+  if (portraitBtn) {
+    portraitBtn.style.display = (window.APP_CONFIG && APP_CONFIG.portraitUrl) ? "block" : "none";
+  }
+}
+

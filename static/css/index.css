@@ -160,6 +160,9 @@ body.edit-mode .card:not(.empty):active{filter:none}
 .modal-overlay#detailsModal {
   z-index:102;
 }
+.modal-overlay#portraitChangeModal {
+  z-index:1001;
+}
 .modal{
   background:var(--bg);border:2px solid var(--brd);
   padding:22px 20px 18px;width:min(340px,92vw);
@@ -291,3 +294,110 @@ body.edit-mode .card:not(.empty):active{filter:none}
   .status-card-cure{font-size:0.75rem;padding-top:6px}
 }
 @media(max-width:360px){.title{font-size:1.5rem}.iname{font-size:.72rem}.iname-sm{font-size:.65rem}}
+
+/* Portrait Styles */
+.portrait-view-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 1000;
+  overflow: hidden;
+  padding: 14px;
+  box-sizing: border-box;
+}
+.portrait-view-modal.open {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+.portrait-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 1001;
+  border-radius: 4px;
+}
+.portrait-close:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.portrait-view-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex: 1;
+  width: 100%;
+  max-width: 90vw;
+  max-height: 80vh;
+}
+.portrait-image {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.portrait-view-footer {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+.portrait-change-btn {
+  padding: 10px 18px;
+  border: 1.5px solid #fff;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  font-family: var(--body);
+  font-size: 0.95rem;
+  border-radius: 4px;
+}
+.portrait-change-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+.portrait-btn {
+  display: none;
+}
+
+/* File input styling for portrait modals */
+#portraitFileInput,
+#portraitChangeFileInput {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  border: 1.5px dashed var(--brd);
+  background: #ede8df;
+  cursor: pointer;
+  font-family: var(--body);
+  font-size: 0.9rem;
+  color: var(--brd);
+  border-radius: 4px;
+}
+
+#portraitFileInput::-webkit-file-upload-button,
+#portraitChangeFileInput::-webkit-file-upload-button {
+  padding: 6px 12px;
+  border: 1.5px solid var(--brd);
+  background: #c9b898;
+  cursor: pointer;
+  font-family: var(--body);
+  font-size: 0.9rem;
+  color: var(--brd);
+  border-radius: 3px;
+  margin-right: 8px;
+}
+
+#portraitFileInput::-webkit-file-upload-button:hover,
+#portraitChangeFileInput::-webkit-file-upload-button:hover {
+  background: #b8a888;
+}
